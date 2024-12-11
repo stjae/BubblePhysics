@@ -3,73 +3,52 @@ using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UIElements;
 
+public struct Particle
+{
+    public Vector2 position;
+    public Vector2 velocity;
+    public Vector2 force;
+    public float radius;
+    public float density;
+    public float pressure;
+}
 
 public class Point : MonoBehaviour
 {
-    [SerializeField]
-    Mesh mesh;
-    [SerializeField]
-    Shader shader;
-    Material material;
-    MaterialPropertyBlock mpBlock;
-    [SerializeField]
-    int mass;
-    [SerializeField]
-    float scale;
+    [field: SerializeField]
+    public float radius { get; private set; }
+    public Particle particle;
+    PhysicsMaterial2D pMaterial;
 
-    void Start()
+    void Awake()
     {
-        material = new Material(shader);
-        material.enableInstancing = true;
-        material.SetFloat("scale", scale);
-
-        mpBlock = new MaterialPropertyBlock();
+        gameObject.layer = LayerMask.NameToLayer("Point");
+        transform.GetComponent<CircleCollider2D>().radius = radius;
+        pMaterial = new PhysicsMaterial2D();
+        pMaterial.friction = 0;
+        particle = new Particle();
     }
-
-    void Update()
+    void FixedUpdate()
     {
-        RenderParams rp = new RenderParams(material);
-        rp.matProps = mpBlock;
-        Matrix4x4[] objectToWorld = new Matrix4x4[transform.childCount];
-        float[] scaleArray = new float[1024];
+        particle.velocity += FluidSim.gravity * FluidSim.deltaTime;
+        particle.position = (Vector2)transform.position + particle.velocity;
 
-        for (int i = 0; i < transform.childCount; ++i)
-        {
-            Vector3 toCenter = transform.position - transform.GetChild(i).position;
-            transform.GetChild(i).GetComponent<CircleCollider2D>().radius = Math.Max(0, scale / 2 - (float)Math.Pow(toCenter.magnitude, 2) * 0.5f);
-            transform.GetChild(i).GetComponent<Rigidbody2D>().AddForce(-1.0f * new Vector2((transform.GetChild(i).position - transform.position).x, (transform.GetChild(i).position - transform.position).y));
-            objectToWorld[i] = Matrix4x4.Translate(transform.GetChild(i).position);
-            scaleArray[i] = Math.Max(0, (scale / 2 - (float)Math.Pow(toCenter.magnitude, 2) * 0.5f) * 2);
-        }
-
-        mpBlock.SetColor("_Color", UnityEngine.Random.ColorHSV());
-        mpBlock.SetFloatArray("_Scale", scaleArray);
-
-        if (transform.childCount > 0)
-            Graphics.DrawMeshInstanced(mesh, 0, material, objectToWorld, transform.childCount, mpBlock);
+        transform.position = particle.position;
     }
-
-    public void Increase(float volume)
+    void OnCollisionEnter2D(Collision2D collisionInfo)
     {
-        if (transform.childCount < volume * mass)
+        foreach (ContactPoint2D contact in collisionInfo.contacts)
         {
-            GameObject point = new GameObject("Point");
-            point.layer = LayerMask.NameToLayer("Point");
-            point.transform.SetParent(transform, false);
-            point.transform.Translate(new Vector3(UnityEngine.Random.Range(0, 0.01f), UnityEngine.Random.Range(0, 0.01f), 0)); // prevent points get piled up
-            point.AddComponent<Rigidbody2D>().gravityScale = 0;
-            point.AddComponent<CircleCollider2D>().radius = scale / 2;
+            particle.velocity = Vector2.Reflect(particle.velocity, contact.normal) * 0.5f;
         }
     }
-    public void Reduce(float volume)
-    {
-        if (transform.childCount > volume * mass)
-            Destroy(transform.GetChild(0).gameObject);
-    }
 
-    void OnDrawGizmos()
+    void OnCollisionStay2D(Collision2D collisionInfo)
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, 0.5f);
+        foreach (ContactPoint2D contact in collisionInfo.contacts)
+        {
+            particle.velocity += contact.normal * 0.005f;
+            // Debug.DrawLine(particle.position, contact.collider.ClosestPoint(particle.position), Color.red);
+        }
     }
 }

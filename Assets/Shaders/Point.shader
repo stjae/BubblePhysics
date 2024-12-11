@@ -1,4 +1,4 @@
-Shader "Instanced/Debug/Dot"
+Shader "Instanced/Debug/Point"
 {
     Properties
     {
@@ -37,7 +37,6 @@ Shader "Instanced/Debug/Dot"
             };
 
             UNITY_INSTANCING_BUFFER_START(Props)
-                UNITY_DEFINE_INSTANCED_PROP(float4, _Color)
                 UNITY_DEFINE_INSTANCED_PROP(float, _Scale)
             UNITY_INSTANCING_BUFFER_END(Props)
 

@@ -10,9 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 7209430208575293177}
   - component: {fileID: 5794614619717952679}
-  - component: {fileID: 8658100833575153443}
   - component: {fileID: -402575618039242784}
-  - component: {fileID: 6012251723238983870}
+  - component: {fileID: -3735067213154186544}
   m_Layer: 0
   m_Name: Bubble
   m_TagString: Untagged
@@ -47,25 +46,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ede41d64125e413fa339bf1df15a329, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isClosed: 0
-  inflationSpeed: 1
-  deflationSpeed: 0.5
---- !u!114 &8658100833575153443
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8321417646459605993}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4ab077753bf924a619a7290526765c0a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  shader: {fileID: 4800000, guid: 28527aad5d286464db8abc4b78fc1850, type: 3}
+  point: {fileID: 9165823829223697808, guid: b8e0623ea5e95437382653969385dde5, type: 3}
   mass: 10
-  scale: 0.4
+  maxRadius: 20
+  minRadius: 0.5
+  radiusStep: 0.005
+  inflationSpeed: 1
+  deflationSpeed: 1
 --- !u!50 &-402575618039242784
 Rigidbody2D:
   serializedVersion: 5
@@ -74,35 +61,14 @@ Rigidbody2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8321417646459605993}
-  m_BodyType: 0
-  m_Simulated: 0
-  m_UseFullKinematicContacts: 0
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 1
   m_UseAutoMass: 0
   m_Mass: 1
   m_LinearDamping: 0
   m_AngularDamping: 0.05
-  m_GravityScale: 0.01
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_Interpolate: 0
-  m_SleepingMode: 1
-  m_CollisionDetection: 0
-  m_Constraints: 0
---- !u!58 &6012251723238983870
-CircleCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8321417646459605993}
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Density: 1
+  m_GravityScale: 0
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -110,22 +76,21 @@ CircleCollider2D:
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 64
-  m_LayerOverridePriority: 0
-  m_ForceSendLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ForceReceiveLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_ContactCaptureLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_CallbackLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
-  m_IsTrigger: 0
-  m_UsedByEffector: 0
-  m_CompositeOperation: 0
-  m_CompositeOrder: 0
-  m_Offset: {x: 0, y: 0}
-  m_Radius: 0.5
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 4
+--- !u!114 &-3735067213154186544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8321417646459605993}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d10116ad903b04849810f0adc133fe00, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pointMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+  pointShader: {fileID: 4800000, guid: 28527aad5d286464db8abc4b78fc1850, type: 3}

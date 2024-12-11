@@ -2,50 +2,80 @@ using System;
 using Unity.VisualScripting;
 using UnityEngine;
 
+
 public class Bubble : MonoBehaviour
 {
-    float volume;
-    float prevVolume = -0.1f;
-    bool isInflating;
     [SerializeField]
-    bool isClosed;
-    public bool IsClosed { get { return isClosed; } }
-
+    Point point;
     [SerializeField]
-    float inflationSpeed;
+    public float radius { get; private set; }
+    [SerializeField]
+    int mass;
+    [SerializeField]
+    float maxRadius;
+    [SerializeField]
+    float minRadius;
+    [SerializeField]
+    float radiusStep;
+    [SerializeField]
+    uint inflationSpeed;
     [SerializeField]
     float deflationSpeed;
+    Vector2 center;
+
+    void Start()
+    {
+        radius = minRadius;
+    }
 
     void Update()
     {
-        isInflating = prevVolume < volume;
-
-        if (!isInflating && !isClosed && volume > 0.0f)
-            Deflate();
-
-        prevVolume = volume;
+        AdjustPointCount();
     }
+
+    void FixedUpdate()
+    {
+    }
+
     public void Inflate()
     {
-        volume += Time.deltaTime * inflationSpeed;
-
-        GetComponent<Point>().Increase(volume);
+        radius += radiusStep * inflationSpeed;
+        radius = Math.Min(maxRadius, radius);
     }
 
-    public void Close()
+    public void Deflate()
     {
-        if (volume > 0.0f)
+        radius -= radiusStep * deflationSpeed;
+        radius = Math.Max(minRadius, radius);
+    }
+
+    void AdjustPointCount()
+    {
+        if (transform.childCount < (int)(Math.PI * radius * radius * mass))
         {
-            isClosed = true;
-            GetComponent<Rigidbody2D>().simulated = true;
+            System.Random rand = new System.Random();
+
+            Point pointInstance = Instantiate(point, transform, false);
+            pointInstance.transform.position += new Vector3((float)rand.NextDouble(), 0, 0);
+        }
+        else if (transform.childCount > (int)(Math.PI * radius * radius * mass))
+        {
+            Destroy(transform.GetChild(0).gameObject);
         }
     }
 
-    void Deflate()
+    public void Move(Vector2 inputVector)
     {
-        volume -= Time.deltaTime * deflationSpeed;
-        volume = Math.Max(0.0f, volume);
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            transform.GetChild(i).GetComponent<Point>().particle.velocity += inputVector;
+        }
+    }
 
-        GetComponent<Point>().Reduce(volume);
+    void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(center, radius);
+        // print(transform.childCount);
     }
 }
