@@ -1,24 +1,17 @@
 using System;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEditor;
 using UnityEngine.UIElements;
+using System.Collections.Generic;
 
-public struct Particle
-{
-    public Vector2 position;
-    public Vector2 velocity;
-    public Vector2 force;
-    public float radius;
-    public float density;
-    public float pressure;
-}
 
 public class Point : MonoBehaviour
 {
     [field: SerializeField]
     public float radius { get; private set; }
-    public Particle particle;
     PhysicsMaterial2D pMaterial;
+    public static List<Particle> particles; // from fluid simulation
 
     void Awake()
     {
@@ -26,20 +19,27 @@ public class Point : MonoBehaviour
         transform.GetComponent<CircleCollider2D>().radius = radius;
         pMaterial = new PhysicsMaterial2D();
         pMaterial.friction = 0;
-        particle = new Particle();
     }
+
     void FixedUpdate()
     {
-        particle.velocity += FluidSim.gravity * FluidSim.deltaTime;
-        particle.position = (Vector2)transform.position + particle.velocity;
-
-        transform.position = particle.position;
+        UpdateSprings();
     }
+
+
+    public void UpdateSprings()
+    {
+        int requiredSize = particles.Count - transform.GetSiblingIndex() - 1;
+        particles[transform.GetSiblingIndex()].springRestLengths.Clear();
+        for (int i = 0; i < requiredSize; i++)
+            particles[transform.GetSiblingIndex()].springRestLengths.Add(null);
+    }
+
     void OnCollisionEnter2D(Collision2D collisionInfo)
     {
         foreach (ContactPoint2D contact in collisionInfo.contacts)
         {
-            particle.velocity = Vector2.Reflect(particle.velocity, contact.normal) * 0.5f;
+            particles[transform.GetSiblingIndex()].velocity = Vector2.Reflect(particles[transform.GetSiblingIndex()].velocity, contact.normal) * 0.5f;
         }
     }
 
@@ -47,8 +47,14 @@ public class Point : MonoBehaviour
     {
         foreach (ContactPoint2D contact in collisionInfo.contacts)
         {
-            particle.velocity += contact.normal * 0.005f;
-            // Debug.DrawLine(particle.position, contact.collider.ClosestPoint(particle.position), Color.red);
+            particles[transform.GetSiblingIndex()].velocity += contact.normal * 0.01f;
         }
+    }
+
+    void OnDrawGizmos()
+    {
+        GUIStyle style = new GUIStyle();
+        style.normal.textColor = Color.red;
+        // Handles.Label(transform.position, transform.GetSiblingIndex().ToString(), style);
     }
 }

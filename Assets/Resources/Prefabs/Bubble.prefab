@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5794614619717952679}
   - component: {fileID: -402575618039242784}
   - component: {fileID: -3735067213154186544}
+  - component: {fileID: 2757401040669036727}
   m_Layer: 0
   m_Name: Bubble
   m_TagString: Untagged
@@ -49,7 +50,7 @@ MonoBehaviour:
   point: {fileID: 9165823829223697808, guid: b8e0623ea5e95437382653969385dde5, type: 3}
   mass: 10
   maxRadius: 20
-  minRadius: 0.5
+  minRadius: 1
   radiusStep: 0.005
   inflationSpeed: 1
   deflationSpeed: 1
@@ -94,3 +95,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pointMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   pointShader: {fileID: 4800000, guid: 28527aad5d286464db8abc4b78fc1850, type: 3}
+--- !u!114 &2757401040669036727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8321417646459605993}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a32f53a5c59f94f40af648dacbf82001, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  restDensity: 15
+  stiffness: 0.1
+  nearStiffness: 0.1
+  springStiffness: 0.05
+  yieldRatio: 0.25
+  plasticity: 0.5
+  linearViscosity: 1
+  quadraticViscosity: 5
+  interactionRadius: 2
+  dt: 0.008

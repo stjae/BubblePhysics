@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -8,7 +9,7 @@ public class Bubble : MonoBehaviour
     [SerializeField]
     Point point;
     [SerializeField]
-    public float radius { get; private set; }
+    static public float radius { get; private set; }
     [SerializeField]
     int mass;
     [SerializeField]
@@ -22,19 +23,33 @@ public class Bubble : MonoBehaviour
     [SerializeField]
     float deflationSpeed;
     Vector2 center;
+    FluidSim fluidSim;
+    public bool isPointCountUpdated { get; set; }
 
     void Start()
     {
-        radius = minRadius;
+        fluidSim = GetComponent<FluidSim>();
     }
 
     void Update()
     {
+        if (radius < minRadius)
+            radius += radiusStep;
         AdjustPointCount();
     }
 
     void FixedUpdate()
     {
+        center = new Vector2();
+        fluidSim.Simulate();
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            transform.GetChild(i).position = fluidSim.particles[i].position;
+            center += fluidSim.particles[i].position;
+        }
+        if (fluidSim.particles.Count > 0)
+            center /= fluidSim.particles.Count;
+        transform.position = center;
     }
 
     public void Inflate()
@@ -53,29 +68,32 @@ public class Bubble : MonoBehaviour
     {
         if (transform.childCount < (int)(Math.PI * radius * radius * mass))
         {
-            System.Random rand = new System.Random();
-
             Point pointInstance = Instantiate(point, transform, false);
-            pointInstance.transform.position += new Vector3((float)rand.NextDouble(), 0, 0);
+            pointInstance.transform.position += new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
+            List<float?> list = new List<float?>();
+            fluidSim.particles.Add(new Particle() { position = pointInstance.transform.position, springRestLengths = list });
+
+            Point.particles = fluidSim.particles;
         }
         else if (transform.childCount > (int)(Math.PI * radius * radius * mass))
         {
             Destroy(transform.GetChild(0).gameObject);
+            fluidSim.particles.RemoveAt(0);
+
+            Point.particles = fluidSim.particles;
         }
+        // print(transform.childCount);
     }
 
     public void Move(Vector2 inputVector)
     {
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            transform.GetChild(i).GetComponent<Point>().particle.velocity += inputVector;
-        }
+        foreach (Particle p in fluidSim.particles)
+            p.velocity += inputVector;
     }
 
     void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(center, radius);
-        // print(transform.childCount);
     }
 }
