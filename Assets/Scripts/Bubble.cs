@@ -9,6 +9,8 @@ public class Bubble : MonoBehaviour
     [SerializeField]
     Point point;
     [SerializeField]
+    float pointRadius;
+    [SerializeField]
     static public float radius { get; private set; }
     [SerializeField]
     int mass;
@@ -22,9 +24,8 @@ public class Bubble : MonoBehaviour
     uint inflationSpeed;
     [SerializeField]
     float deflationSpeed;
-    Vector2 center;
+    public static Vector2 center;
     FluidSim fluidSim;
-    public bool isPointCountUpdated { get; set; }
 
     void Start()
     {
@@ -35,6 +36,7 @@ public class Bubble : MonoBehaviour
     {
         if (radius < minRadius)
             radius += radiusStep;
+        Point.radius = pointRadius;
         AdjustPointCount();
     }
 

@@ -8,8 +8,7 @@ using System.Collections.Generic;
 
 public class Point : MonoBehaviour
 {
-    [field: SerializeField]
-    public float radius { get; private set; }
+    public static float radius;
     PhysicsMaterial2D pMaterial;
     public static List<Particle> particles; // from fluid simulation
 
@@ -23,6 +22,8 @@ public class Point : MonoBehaviour
 
     void FixedUpdate()
     {
+        // TODO: if statement
+        transform.GetComponent<CircleCollider2D>().radius = radius;
         UpdateSprings();
     }
 
@@ -47,6 +48,7 @@ public class Point : MonoBehaviour
     {
         foreach (ContactPoint2D contact in collisionInfo.contacts)
         {
+            particles[transform.GetSiblingIndex()].velocity = new Vector2();
             particles[transform.GetSiblingIndex()].velocity += contact.normal * 0.01f;
         }
     }

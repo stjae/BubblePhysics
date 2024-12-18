@@ -7,6 +7,7 @@ using System.Collections.Generic;
 public class Particle
 {
     public Vector2 position;
+    public Vector2 localPosition; // TODO: prevent access to set
     public Vector2 prevPosition;
     public Vector2 velocity;
     public Vector2 force;
@@ -47,8 +48,8 @@ public class FluidSim : MonoBehaviour
 
     public void Simulate()
     {
-        restDensity = Bubble.radius * 15;
-        interactionRadius = Bubble.radius * 2;
+        // restDensity = Bubble.radius * 15;
+        // interactionRadius = Bubble.radius * 2;
 
         ApplyGravity();
         ApplyViscosity();
@@ -63,10 +64,11 @@ public class FluidSim : MonoBehaviour
         ResolveCollisions();
 
         float dtInv = 1 / dt;
-        Parallel.For(0, particles.Count, i =>
+        for (int i = 0; i < particles.Count; i++)
         {
             particles[i].velocity = (particles[i].position - particles[i].prevPosition) * dtInv;
-        });
+            particles[i].localPosition = particles[i].position - (Vector2)transform.position;
+        };
     }
     void ApplyGravity()
     {
