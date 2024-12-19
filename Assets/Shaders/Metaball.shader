@@ -1,4 +1,4 @@
-Shader "Instanced/Debug/Point"
+Shader "Custom/Metaball"
 {
     Properties
     {
@@ -19,7 +19,10 @@ Shader "Instanced/Debug/Point"
             #pragma multi_compile_instancing
             #include "UnityCG.cginc"
 
+            uniform float4 Positions[1000];
+            uniform int Count;
             uniform float Scale;
+            uniform float Threshold;
 
             struct appdata
             {
@@ -44,7 +47,7 @@ Shader "Instanced/Debug/Point"
 
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_TRANSFER_INSTANCE_ID(v, o);
-                o.vertex = UnityObjectToClipPos(v.vertex * Scale);
+                o.vertex = UnityObjectToClipPos(v.vertex * 2.0);
                 o.uv = v.uv;
                 return o;
             }
@@ -53,10 +56,22 @@ Shader "Instanced/Debug/Point"
             {
                 UNITY_SETUP_INSTANCE_ID(i);
 
-                float3 color = float3(1,1,1);
-                float2 offset = float2(0.5, 0.5);
-                float alpha = 0.5 - length(i.uv - float2(0.5, 0.5));
-                clip(alpha);
+                float3 color = float3(0,0,0);
+                float influence = 0.0;
+                for(int idx = 0; idx < Count; idx++)
+                {
+                    float2 current = Positions[instanceID] + (i.uv.xy - 0.5) * 2.0;
+                    float2 other = Positions[idx];
+
+                    float distance = length(current - other);
+                    float currentInfluence = (Scale / 2) * (Scale / 2);
+		            currentInfluence /= (pow(abs(current.x - other.x), 2.0) + pow(abs(current.y - other.y), 2.0));
+            		influence += currentInfluence;
+                    color += float3(1,1,1) * currentInfluence;
+                }
+
+                if(influence < Threshold)
+                    discard;
 
                 return float4(color,1);
             }

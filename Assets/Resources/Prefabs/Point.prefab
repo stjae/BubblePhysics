@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2888151396331297572}
   - component: {fileID: 9165823829223697808}
   - component: {fileID: 908855120240489798}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Point
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -45,7 +45,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ab077753bf924a619a7290526765c0a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <radius>k__BackingField: 0.1
 --- !u!58 &908855120240489798
 CircleCollider2D:
   m_ObjectHideFlags: 0

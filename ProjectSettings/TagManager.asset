@@ -3,15 +3,16 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
-  tags: []
+  tags:
+  - Fire
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Point
   - Water
   - UI
-  - Point
+  - 
   - 
   - 
   - 
@@ -43,3 +44,4 @@ TagManager:
     locked: 0
   m_RenderingLayers:
   - Default
+  - Point
