@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Reflection;
 
 public class Particle
 {
@@ -10,6 +11,7 @@ public class Particle
     public Vector2 localPosition; // TODO: prevent access to set
     public Vector2 prevPosition;
     public Vector2 velocity;
+    public float density;
     public Vector2 force;
     public float radius;
     public List<float?> springRestLengths;
@@ -98,6 +100,7 @@ public class FluidSim : MonoBehaviour
                     nearDensity += (1 - q) * (1 - q) * (1 - q);
                 }
             }
+            particles[i].density = density;
 
             // compute pressure & near-pressure
             float pressure = stiffness * (density - restDensity);

@@ -24,7 +24,6 @@ public class Bubble : MonoBehaviour
     uint inflationSpeed;
     [SerializeField]
     float deflationSpeed;
-    public static Vector2 center;
     FluidSim fluidSim;
 
     void Start()
@@ -42,16 +41,8 @@ public class Bubble : MonoBehaviour
 
     void FixedUpdate()
     {
-        center = new Vector2();
         fluidSim.Simulate();
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            transform.GetChild(i).position = fluidSim.particles[i].position;
-            center += fluidSim.particles[i].position;
-        }
-        if (fluidSim.particles.Count > 0)
-            center /= fluidSim.particles.Count;
-        transform.position = center;
+        UpdatePosition();
     }
 
     public void Inflate()
@@ -87,6 +78,25 @@ public class Bubble : MonoBehaviour
         // print(transform.childCount);
     }
 
+    void UpdatePosition()
+    {
+        if (transform.childCount < 1)
+            return;
+
+        Particle highDensityParticle = fluidSim.particles[0];
+        float decisionDistance = Point.radius * 4;
+
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            transform.GetChild(i).position = fluidSim.particles[i].position;
+            if (fluidSim.particles[i].density > highDensityParticle.density && (highDensityParticle.position - fluidSim.particles[i].position).magnitude < decisionDistance)
+                highDensityParticle = fluidSim.particles[i];
+        }
+
+        if (transform.childCount > 0)
+            transform.position = Vector2.Lerp(transform.position, transform.position + ((Vector3)highDensityParticle.position - transform.position), Time.deltaTime * 2.0f);
+    }
+
     public void Move(Vector2 inputVector)
     {
         foreach (Particle p in fluidSim.particles)
@@ -96,6 +106,8 @@ public class Bubble : MonoBehaviour
     void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(center, radius);
+        Gizmos.DrawWireSphere(transform.position, radius);
+        Gizmos.color = Color.green;
+        Gizmos.DrawWireSphere(transform.position, radius * 4);
     }
 }

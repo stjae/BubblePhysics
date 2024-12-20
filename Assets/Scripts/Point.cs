@@ -1,9 +1,6 @@
-using System;
-using Unity.VisualScripting;
 using UnityEngine;
-using UnityEditor;
-using UnityEngine.UIElements;
 using System.Collections.Generic;
+using UnityEditor;
 
 
 public class Point : MonoBehaviour
@@ -26,7 +23,6 @@ public class Point : MonoBehaviour
         transform.GetComponent<CircleCollider2D>().radius = radius;
         UpdateSprings();
     }
-
 
     public void UpdateSprings()
     {
@@ -57,6 +53,6 @@ public class Point : MonoBehaviour
     {
         GUIStyle style = new GUIStyle();
         style.normal.textColor = Color.red;
-        // Handles.Label(transform.position, transform.GetSiblingIndex().ToString(), style);
+        Handles.Label(transform.position, particles[transform.GetSiblingIndex()].density.ToString(), style);
     }
 }
