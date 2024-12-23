@@ -6,12 +6,9 @@ public class CameraFollow : MonoBehaviour
     float smoothTime = 0.1f;
     Vector3 velocity = Vector3.zero;
 
-    [SerializeField]
-    Transform target;
-
     void FixedUpdate()
     {
-        Vector3 targetPosition = target.GetChild(0).position + offset;
+        Vector3 targetPosition = Bubble.center + offset;
         transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, smoothTime);
     }
 }

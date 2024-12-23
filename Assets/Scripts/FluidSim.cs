@@ -15,6 +15,7 @@ public class Particle
     public Vector2 force;
     public float radius;
     public List<float?> springRestLengths;
+    public bool isDetached;
 }
 public class FluidSim : MonoBehaviour
 {
@@ -50,9 +51,6 @@ public class FluidSim : MonoBehaviour
 
     public void Simulate()
     {
-        // restDensity = Bubble.radius * 15;
-        // interactionRadius = Bubble.radius * 2;
-
         ApplyGravity();
         ApplyViscosity();
         Parallel.For(0, particles.Count, i =>
@@ -66,8 +64,13 @@ public class FluidSim : MonoBehaviour
         ResolveCollisions();
 
         float dtInv = 1 / dt;
-        for (int i = 0; i < particles.Count; i++)
+        for (int i = particles.Count - 1; i >= 0; i--)
         {
+            if (particles[i].isDetached)
+            {
+                particles.RemoveAt(i);
+                continue;
+            }
             particles[i].velocity = (particles[i].position - particles[i].prevPosition) * dtInv;
             particles[i].localPosition = particles[i].position - (Vector2)transform.position;
         };
@@ -189,7 +192,7 @@ public class FluidSim : MonoBehaviour
     {
         Parallel.For(0, particles.Count, i =>
         {
-            for (int j = 0; j < particles[i].springRestLengths.Count; j++)
+            for (int j = 0; j < particles.Count; j++)
             {
                 float r = (particles[j].position - particles[i].position).magnitude;
                 Vector2 rUnit = (particles[j].position - particles[i].position).normalized;
