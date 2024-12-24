@@ -27,6 +27,7 @@ public class Bubble : MonoBehaviour
     float deflationSpeed;
     FluidSim fluidSim;
     static public Vector3 center { get; private set; }
+    static public Vector3 highestDensityPosition { get; private set; }
 
     void Start()
     {
@@ -72,8 +73,8 @@ public class Bubble : MonoBehaviour
             Destroy(transform.GetChild(0).gameObject);
             fluidSim.particles.RemoveAt(0);
         }
-        print(transform.childCount);
-        print(fluidSim.particles.Count);
+        // print(transform.childCount);
+        // print(fluidSim.particles.Count);
     }
 
     void UpdatePosition()

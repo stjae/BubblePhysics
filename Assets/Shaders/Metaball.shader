@@ -63,7 +63,6 @@ Shader "Custom/Metaball"
                     float2 current = Positions[instanceID] + (i.uv.xy - 0.5) * 2.0;
                     float2 other = Positions[idx];
 
-                    float distance = length(current - other);
                     float currentInfluence = (Scale / 2) * (Scale / 2);
 		            currentInfluence /= (pow(abs(current.x - other.x), 2.0) + pow(abs(current.y - other.y), 2.0));
             		influence += currentInfluence;

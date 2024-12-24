@@ -96,10 +96,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   pointMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
   pointShader: {fileID: 4800000, guid: 28527aad5d286464db8abc4b78fc1850, type: 3}
+  metaballRenderCS: {fileID: 7200000, guid: b918c9b569b6c4a49a503dc918f3e42a, type: 3}
   metaballShader: {fileID: 4800000, guid: b15ee3bc1797d4391a80aa526400d416, type: 3}
-  threshold: 1
-  renderPoint: 1
-  renderMetaball: 1
+  threshold: 0.005
+  renderPoint: 0
+  renderMetaball: 0
 --- !u!114 &2757401040669036727
 MonoBehaviour:
   m_ObjectHideFlags: 0
