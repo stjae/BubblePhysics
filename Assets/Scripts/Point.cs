@@ -38,7 +38,7 @@ public class Point : MonoBehaviour
 
     void CheckDetached()
     {
-        if ((transform.position - transform.parent.position).magnitude > Bubble.radius * 4.0f)
+        if ((fluidSim.particles[transform.GetSiblingIndex()].position - (Vector2)Bubble.center).magnitude > Bubble.decisionDistance)
         {
             fluidSim.particles[transform.GetSiblingIndex()].isDetached = true;
             Bubble.radius = (float)Math.Sqrt((transform.parent.childCount - 1) / (Math.PI * 10));
@@ -65,8 +65,10 @@ public class Point : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        GUIStyle style = new GUIStyle();
-        style.normal.textColor = Color.red;
-        Handles.Label(transform.position, fluidSim.particles[transform.GetSiblingIndex()].density.ToString(), style);
+        // GUIStyle style = new GUIStyle();
+        // style.normal.textColor = Color.red;
+        // Handles.Label(transform.position, fluidSim.particles[transform.GetSiblingIndex()].density.ToString(), style);
+        // Gizmos.color = Color.green;
+        // Gizmos.DrawSphere(transform.position, radius);
     }
 }

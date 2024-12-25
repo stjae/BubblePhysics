@@ -25,6 +25,7 @@ public class Bubble : MonoBehaviour
     uint inflationSpeed;
     [SerializeField]
     float deflationSpeed;
+    static public float decisionDistance;
     FluidSim fluidSim;
     static public Vector3 center { get; private set; }
     static public Vector3 highestDensityPosition { get; private set; }
@@ -38,6 +39,7 @@ public class Bubble : MonoBehaviour
     void Update()
     {
         Point.radius = pointRadius;
+        decisionDistance = radius * 3;
         AdjustPointCount();
     }
 
@@ -84,7 +86,6 @@ public class Bubble : MonoBehaviour
 
         center = new Vector2();
         Particle highDensityParticle = fluidSim.particles[0];
-        float decisionDistance = Point.radius * 4;
 
         for (int i = 0; i < transform.childCount; i++)
         {
@@ -106,9 +107,11 @@ public class Bubble : MonoBehaviour
     void OnDrawGizmos()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, radius);
+        // Gizmos.DrawWireSphere(transform.position, radius);
+        Gizmos.DrawWireSphere(center, radius);
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, radius * 4);
+        // Gizmos.DrawWireSphere(transform.position, decisionDistance);
+        Gizmos.DrawWireSphere(center, decisionDistance);
     }
 
     IEnumerator SetInitialRadius()
