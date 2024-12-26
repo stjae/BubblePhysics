@@ -12,35 +12,29 @@ public class Bubble : MonoBehaviour
     [SerializeField]
     float pointRadius;
     [SerializeField]
+    float maxPointCount;
+    [SerializeField]
+    float minPointCount;
+    [SerializeField]
+    float inflationInterval;
+    [SerializeField]
+    float deflationInterval;
     static public float radius;
-    [SerializeField]
-    public int mass;
-    [SerializeField]
-    float maxRadius;
-    [SerializeField]
-    float minRadius;
-    [SerializeField]
-    float radiusStep;
-    [SerializeField]
-    uint inflationSpeed;
-    [SerializeField]
-    float deflationSpeed;
-    static public float decisionDistance;
     FluidSim fluidSim;
     static public Vector3 center { get; private set; }
     static public Vector3 highestDensityPosition { get; private set; }
+    bool isInflating;
+    bool isDeflating;
 
     void Start()
     {
         fluidSim = GetComponent<FluidSim>();
-        StartCoroutine(SetInitialRadius());
+        StartCoroutine(InflateInitialCoroutine());
     }
 
     void Update()
     {
         Point.radius = pointRadius;
-        decisionDistance = radius * 3;
-        AdjustPointCount();
     }
 
     void FixedUpdate()
@@ -51,32 +45,20 @@ public class Bubble : MonoBehaviour
 
     public void Inflate()
     {
-        radius += radiusStep * inflationSpeed;
-        radius = Math.Min(maxRadius, radius);
+        if (isInflating || transform.childCount >= maxPointCount)
+            return;
+
+        isInflating = true;
+        StartCoroutine(InflateCoroutine());
     }
 
     public void Deflate()
     {
-        radius -= radiusStep * deflationSpeed;
-        radius = Math.Max(minRadius, radius);
-    }
+        if (isDeflating || transform.childCount <= minPointCount)
+            return;
 
-    void AdjustPointCount()
-    {
-        if (transform.childCount < (int)(Math.PI * radius * radius * mass))
-        {
-            Point pointInstance = Instantiate(point, transform, false);
-            pointInstance.transform.position += new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
-            List<float?> list = new List<float?>();
-            fluidSim.particles.Add(new Particle() { position = pointInstance.transform.position, springRestLengths = list });
-        }
-        else if (transform.childCount > (int)(Math.PI * radius * radius * mass))
-        {
-            Destroy(transform.GetChild(0).gameObject);
-            fluidSim.particles.RemoveAt(0);
-        }
-        // print(transform.childCount);
-        // print(fluidSim.particles.Count);
+        isDeflating = true;
+        StartCoroutine(DeflateCoroutine());
     }
 
     void UpdatePosition()
@@ -86,15 +68,22 @@ public class Bubble : MonoBehaviour
 
         center = new Vector2();
         Particle highDensityParticle = fluidSim.particles[0];
+        float maxY = 0;
+        float minY = 0;
 
         for (int i = 0; i < transform.childCount; i++)
         {
             center += transform.GetChild(i).position;
-            if (fluidSim.particles[i].density > highDensityParticle.density && (highDensityParticle.position - fluidSim.particles[i].position).magnitude < decisionDistance)
+            if (fluidSim.particles[i].density > highDensityParticle.density && (highDensityParticle.position - fluidSim.particles[i].position).magnitude < Render.textureTileCoverage)
                 highDensityParticle = fluidSim.particles[i];
+            if (fluidSim.particles[i].localPosition.y > maxY)
+                maxY = fluidSim.particles[i].localPosition.y;
+            if (fluidSim.particles[i].localPosition.y < minY)
+                minY = fluidSim.particles[i].localPosition.y;
         }
 
         center /= transform.childCount;
+        radius = maxY - minY;
         transform.position = highDensityParticle.position;
     }
 
@@ -106,20 +95,38 @@ public class Bubble : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.red;
-        // Gizmos.DrawWireSphere(transform.position, radius);
-        Gizmos.DrawWireSphere(center, radius);
         Gizmos.color = Color.green;
-        // Gizmos.DrawWireSphere(transform.position, decisionDistance);
-        Gizmos.DrawWireSphere(center, decisionDistance);
+        Gizmos.DrawWireSphere(center, radius);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(center, Render.textureTileCoverage);
     }
 
-    IEnumerator SetInitialRadius()
+    IEnumerator InflateInitialCoroutine()
     {
-        while (radius < minRadius)
+        while (transform.childCount < minPointCount)
         {
-            radius += radiusStep;
-            yield return null;
+            StartCoroutine(InflateCoroutine());
+            yield return new WaitForSeconds(inflationInterval);
         }
+    }
+
+    IEnumerator InflateCoroutine()
+    {
+        Point pointInstance = Instantiate(point, transform, false);
+        pointInstance.transform.position += new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
+        List<float?> list = new List<float?>();
+        fluidSim.particles.Add(new Particle() { position = pointInstance.transform.position, springRestLengths = list });
+
+        yield return new WaitForSeconds(inflationInterval);
+        isInflating = false;
+    }
+
+    IEnumerator DeflateCoroutine()
+    {
+        Destroy(transform.GetChild(0).gameObject);
+        fluidSim.particles.RemoveAt(0);
+
+        yield return new WaitForSeconds(deflationInterval);
+        isDeflating = false;
     }
 }

@@ -35,7 +35,7 @@ public class Render : MonoBehaviour
     RenderTexture[,,] mbRenderTexturesNegXY;
     Material[,,] mbMaterialsPosXY;
     Material[,,] mbMaterialsNegXY;
-    int textureTileCoverage = 7;
+    static public int textureTileCoverage = 7;
     Vector3 shaderOffset;
     Vector3 positionOffset;
 
@@ -122,7 +122,6 @@ public class Render : MonoBehaviour
         metaballRenderCS.SetFloat("Threshold", metaballThreshold);
         metaballRenderCS.SetFloat("Resolution", mbRenderTextureSize);
         metaballRenderCS.SetFloat("Radius", Point.radius);
-        metaballRenderCS.SetFloat("Width", Bubble.radius * 4);
         metaballRenderCS.SetInt("Count", transform.childCount);
         metaballRenderCS.SetVectorArray("Positions", objectLocalPositions);
 

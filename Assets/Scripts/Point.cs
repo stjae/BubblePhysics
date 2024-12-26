@@ -38,10 +38,9 @@ public class Point : MonoBehaviour
 
     void CheckDetached()
     {
-        if ((fluidSim.particles[transform.GetSiblingIndex()].position - (Vector2)Bubble.center).magnitude > Bubble.decisionDistance)
+        if ((fluidSim.particles[transform.GetSiblingIndex()].position - (Vector2)Bubble.center).magnitude > Render.textureTileCoverage)
         {
             fluidSim.particles[transform.GetSiblingIndex()].isDetached = true;
-            Bubble.radius = (float)Math.Sqrt((transform.parent.childCount - 1) / (Math.PI * 10));
             Destroy(gameObject);
         }
     }
