@@ -50,7 +50,7 @@ MonoBehaviour:
   point: {fileID: 9165823829223697808, guid: b8e0623ea5e95437382653969385dde5, type: 3}
   pointRadius: 0.15
   maxPointCount: 170
-  minPointCount: 30
+  minPointCount: 60
   inflationInterval: 0.015
   deflationInterval: 0.015
 --- !u!50 &-402575618039242784

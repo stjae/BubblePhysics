@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Render : MonoBehaviour
 {
+    Bubble bubble;
     [SerializeField]
     Mesh pointMesh;
     [SerializeField]
@@ -35,7 +36,7 @@ public class Render : MonoBehaviour
     RenderTexture[,,] mbRenderTexturesNegXY;
     Material[,,] mbMaterialsPosXY;
     Material[,,] mbMaterialsNegXY;
-    static public int textureTileCoverage = 7;
+    static public int textureTileCoverage = 10;
     Vector3 shaderOffset;
     Vector3 positionOffset;
 
@@ -45,6 +46,8 @@ public class Render : MonoBehaviour
     bool renderMetaball;
     void Start()
     {
+        bubble = transform.GetComponent<Bubble>();
+
         pointMaterial = new Material(pointShader);
         pointMaterial.enableInstancing = true;
 
@@ -76,8 +79,8 @@ public class Render : MonoBehaviour
         mbRenderFlagsPosXY = new bool[textureTileCoverage, 2, textureTileCoverage];
         mbRenderFlagsNegXY = new bool[textureTileCoverage, 2, textureTileCoverage];
 
-        shaderOffset = transform.position - Bubble.center;
-        positionOffset = Bubble.center - transform.position;
+        shaderOffset = transform.position - bubble.transform.position;
+        positionOffset = bubble.transform.position - transform.position;
 
         Vector3[] pointOffset = new Vector3[9];
         pointOffset[0] = Vector3.zero;
@@ -101,18 +104,23 @@ public class Render : MonoBehaviour
 
             for (int j = 0; j < 9; j++)
             {
-                SignalRenderFlagsX(shaderPosition + pointOffset[j]);
-                SignalRenderFlagsY(shaderPosition + pointOffset[j]);
+                Vector3 signalPosition = shaderPosition + pointOffset[j];
 
-                SignalRenderFlagsPosXY(shaderPosition + pointOffset[j]);
-                SignalRenderFlagsNegXY(shaderPosition + pointOffset[j]);
+                if (Math.Abs(signalPosition.x) > textureTileCoverage || Math.Abs(signalPosition.y) > textureTileCoverage)
+                    continue;
+
+                SignalRenderFlagsX(signalPosition);
+                SignalRenderFlagsY(signalPosition);
+
+                SignalRenderFlagsPosXY(signalPosition);
+                SignalRenderFlagsNegXY(signalPosition);
             }
         }
 
-        if (renderPoint && transform.childCount > 0)
-            RenderPoint();
-        if (renderMetaball && transform.childCount > 0)
-            RenderMetaball();
+        // if (renderPoint && transform.childCount > 0)
+        // RenderPoint();
+        // if (renderMetaball && transform.childCount > 0)
+        // RenderMetaball();
 
         RenderMetaballTiles();
     }
@@ -125,8 +133,8 @@ public class Render : MonoBehaviour
         metaballRenderCS.SetInt("Count", transform.childCount);
         metaballRenderCS.SetVectorArray("Positions", objectLocalPositions);
 
+        // render center tile
         RenderParams rp = new RenderParams(metaballCanvasMeshMaterial);
-
         metaballRenderCS.SetTexture(0, "Result", metaballRenderTexture);
         metaballRenderCS.SetVector("Offset", shaderOffset);
         metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
@@ -293,6 +301,11 @@ public class Render : MonoBehaviour
             else if (position.y < -0.5)
                 mbRenderFlagsNegXY[(int)Math.Round(Math.Abs(position.x)) - 1, 1, (int)Math.Round(Math.Abs(position.y)) - 1] = true;
         }
+    }
+
+    void RenderTextureTileCenter()
+    {
+
     }
 
     void RenderTextureTiles1D()

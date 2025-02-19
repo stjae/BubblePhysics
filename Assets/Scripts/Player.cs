@@ -4,7 +4,6 @@ using UnityEngine;
 
 public class Player : MonoBehaviour
 {
-    [SerializeField]
     Bubble bubble;
     [SerializeField]
     float speed;
@@ -13,7 +12,7 @@ public class Player : MonoBehaviour
 
     void Start()
     {
-        bubble = Instantiate(bubble, transform, false);
+        bubble = transform.Find("Bubble").GetComponent<Bubble>();
     }
     void Update()
     {
@@ -23,7 +22,8 @@ public class Player : MonoBehaviour
             bubble.Deflate();
 
         Vector2 inputVector = new Vector2();
-        RaycastHit2D hitGround = Physics2D.Raycast(bubble.transform.position, Vector2.down, Bubble.radius, (-1) - (1 << LayerMask.NameToLayer("Point")));
+        // RaycastHit2D hitGround = Physics2D.Raycast(bubble.transform.position, Vector2.down, bubble.radius, (-1) - (1 << LayerMask.NameToLayer("Point")));
+        bool hitGround = true;
 
         if (Input.GetKey(KeyCode.A) && hitGround)
             inputVector += Vector2.left * FluidSim.deltaTime * speed;

@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Mono.Cecil;
 using Unity.VisualScripting;
+using UnityEditor.SearchService;
 using UnityEngine;
 
 
@@ -19,10 +21,7 @@ public class Bubble : MonoBehaviour
     float inflationInterval;
     [SerializeField]
     float deflationInterval;
-    static public float radius;
     FluidSim fluidSim;
-    static public Vector3 center { get; private set; }
-    static public Vector3 highestDensityPosition { get; private set; }
     bool isInflating;
     bool isDeflating;
 
@@ -43,6 +42,16 @@ public class Bubble : MonoBehaviour
         UpdatePosition();
     }
 
+    void UpdatePosition()
+    {
+        Vector2 center = new Vector2();
+        foreach (Particle p in fluidSim.particles)
+        {
+            center += p.position;
+        }
+        transform.position = center / fluidSim.particles.Count;
+    }
+
     public void Inflate()
     {
         if (isInflating || transform.childCount >= maxPointCount)
@@ -61,51 +70,17 @@ public class Bubble : MonoBehaviour
         StartCoroutine(DeflateCoroutine());
     }
 
-    void UpdatePosition()
-    {
-        if (transform.childCount < 1)
-            return;
-
-        center = new Vector2();
-        Particle highDensityParticle = fluidSim.particles[0];
-        float maxY = 0;
-        float minY = 0;
-
-        for (int i = 0; i < transform.childCount; i++)
-        {
-            center += transform.GetChild(i).position;
-            if (fluidSim.particles[i].density > highDensityParticle.density && (highDensityParticle.position - fluidSim.particles[i].position).magnitude < Render.textureTileCoverage)
-                highDensityParticle = fluidSim.particles[i];
-            if (fluidSim.particles[i].localPosition.y > maxY)
-                maxY = fluidSim.particles[i].localPosition.y;
-            if (fluidSim.particles[i].localPosition.y < minY)
-                minY = fluidSim.particles[i].localPosition.y;
-        }
-
-        center /= transform.childCount;
-        radius = maxY - minY;
-        transform.position = highDensityParticle.position;
-    }
-
     public void Move(Vector2 inputVector)
     {
         foreach (Particle p in fluidSim.particles)
             p.velocity += inputVector;
     }
 
-    void OnDrawGizmos()
-    {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(center, radius);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(center, Render.textureTileCoverage);
-    }
-
     IEnumerator InflateInitialCoroutine()
     {
         while (transform.childCount < minPointCount)
         {
-            StartCoroutine(InflateCoroutine());
+            Inflate();
             yield return new WaitForSeconds(inflationInterval);
         }
     }
@@ -114,8 +89,9 @@ public class Bubble : MonoBehaviour
     {
         Point pointInstance = Instantiate(point, transform, false);
         pointInstance.transform.position += new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
-        List<float?> list = new List<float?>();
-        fluidSim.particles.Add(new Particle() { position = pointInstance.transform.position, springRestLengths = list });
+        List<float?> springs = new List<float?>();
+        List<Particle> neighbors = new List<Particle>();
+        fluidSim.particles.Add(new Particle() { position = pointInstance.transform.position, springRestLengths = springs, neighborParticles = neighbors });
 
         yield return new WaitForSeconds(inflationInterval);
         isInflating = false;
@@ -129,4 +105,18 @@ public class Bubble : MonoBehaviour
         yield return new WaitForSeconds(deflationInterval);
         isDeflating = false;
     }
+
+    void OnDrawGizmos()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        // Gizmos.color = Color.green;
+        // Gizmos.DrawWireSphere(center, radius);
+        // Gizmos.color = Color.red;
+        // Gizmos.DrawWireSphere(center, Render.textureTileCoverage);
+        // Gizmos.color = Color.blue;
+        // Gizmos.DrawWireSphere(highestDensityParticle.position, Point.radius);
+    }
+
 }

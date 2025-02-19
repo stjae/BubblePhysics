@@ -9,6 +9,7 @@ public class Point : MonoBehaviour
     public static float radius;
     PhysicsMaterial2D pMaterial;
     FluidSim fluidSim;
+    public Particle particle;
 
     void Awake()
     {
@@ -22,7 +23,6 @@ public class Point : MonoBehaviour
     void FixedUpdate()
     {
         // TODO: if statement
-        CheckDetached();
         UpdateSprings();
         transform.GetComponent<CircleCollider2D>().radius = radius;
         transform.position = fluidSim.particles[transform.GetSiblingIndex()].position;
@@ -34,15 +34,6 @@ public class Point : MonoBehaviour
         fluidSim.particles[transform.GetSiblingIndex()].springRestLengths.Clear();
         for (int i = 0; i < requiredSize; i++)
             fluidSim.particles[transform.GetSiblingIndex()].springRestLengths.Add(null);
-    }
-
-    void CheckDetached()
-    {
-        if ((fluidSim.particles[transform.GetSiblingIndex()].position - (Vector2)Bubble.center).magnitude > Render.textureTileCoverage)
-        {
-            fluidSim.particles[transform.GetSiblingIndex()].isDetached = true;
-            Destroy(gameObject);
-        }
     }
 
     void OnCollisionEnter2D(Collision2D collisionInfo)
@@ -66,8 +57,8 @@ public class Point : MonoBehaviour
     {
         // GUIStyle style = new GUIStyle();
         // style.normal.textColor = Color.red;
-        // Handles.Label(transform.position, fluidSim.particles[transform.GetSiblingIndex()].density.ToString(), style);
+        // Handles.Label(transform.position, fluidSim.particles[transform.GetSiblingIndex()].springRestLengths.Count.ToString(), style);
         // Gizmos.color = Color.green;
-        // Gizmos.DrawSphere(transform.position, radius);
+        // Gizmos.DrawWireSphere(transform.position, radius);
     }
 }

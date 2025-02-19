@@ -7,8 +7,14 @@ using UnityEngine.Rendering.Universal;
 static public class GiftWrapper
 {
     static Stack<Vector2> m_convexList = new Stack<Vector2>();
+    static Stack<Particle> m_convexParticles = new Stack<Particle>();
     static List<Vector2> m_innerPoints = new List<Vector2>();
 
+    static public Stack<Particle> Wrap(Particle[] p)
+    {
+        GetConvexParticles(p);
+        return m_convexParticles;
+    }
     static public void Wrap(Particle[] p, List<Vector2> convexLines, float threshold, int interpolationCount, List<Vector2> interpolationTest)
     {
         GetConvexLines(p, convexLines);
@@ -51,6 +57,29 @@ static public class GiftWrapper
         convexLines.Add(m_convexList.ToArray()[m_convexList.Count - 1]);
         convexLines.Add(m_convexList.ToArray()[0]);
     }
+
+    static void GetConvexParticles(Particle[] p)
+    {
+        m_convexParticles.Clear();
+
+        Particle lowestParticle = GetLowestParticle(p);
+        Array.Sort(p, delegate (Particle a, Particle b) { return Compare(a.localPosition, b.localPosition, lowestParticle.localPosition); });
+
+        m_convexParticles.Push(p[0]);
+        m_convexParticles.Push(p[1]);
+        for (int i = 2; i < p.Length; i++)
+        {
+            Particle next = p[i];
+            Particle p0 = m_convexParticles.Pop();
+            while (m_convexParticles.Count > 0 && IsCCW(m_convexParticles.Peek().localPosition, p0.localPosition, next.localPosition) <= 0)
+            {
+                p0 = m_convexParticles.Pop();
+            }
+            m_convexParticles.Push(p0);
+            m_convexParticles.Push(next);
+        }
+        m_convexParticles.Push(lowestParticle);
+    }
     static Vector2 GetLowestPosition(Particle[] p)
     {
         Vector2 lowestPoint = p[0].localPosition;
@@ -60,6 +89,16 @@ static public class GiftWrapper
                 lowestPoint = p[i].localPosition;
 
         return lowestPoint;
+    }
+    static Particle GetLowestParticle(Particle[] p)
+    {
+        Particle lowestParticle = p[0];
+
+        for (int i = 1; i < p.Length; i++)
+            if (p[i].localPosition.y < lowestParticle.localPosition.y)
+                lowestParticle = p[i];
+
+        return lowestParticle;
     }
 
     static Vector2 GetLowestPosition(Vector2[] p)

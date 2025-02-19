@@ -4,6 +4,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEditor;
 
 public class Particle
 {
@@ -12,10 +13,11 @@ public class Particle
     public Vector2 prevPosition;
     public Vector2 velocity;
     public float density;
+    public float nearDensity;
     public Vector2 force;
     public float radius;
     public List<float?> springRestLengths;
-    public bool isDetached;
+    public List<Particle> neighborParticles;
 }
 public class FluidSim : MonoBehaviour
 {
@@ -43,10 +45,15 @@ public class FluidSim : MonoBehaviour
     [SerializeField]
     float dt;
     public List<Particle> particles;
+    public List<Particle> outlineParticles;
+    public List<Particle> mainParticles;
+    public Particle highestDensityParticle { get; private set; }
 
     void Awake()
     {
         particles = new List<Particle>();
+        outlineParticles = new List<Particle>();
+        mainParticles = new List<Particle>();
     }
 
     public void Simulate()
@@ -64,16 +71,14 @@ public class FluidSim : MonoBehaviour
         ResolveCollisions();
 
         float dtInv = 1 / dt;
+        highestDensityParticle = particles[0];
         for (int i = particles.Count - 1; i >= 0; i--)
         {
-            if (particles[i].isDetached)
-            {
-                particles.RemoveAt(i);
-                continue;
-            }
             particles[i].velocity = (particles[i].position - particles[i].prevPosition) * dtInv;
             particles[i].localPosition = particles[i].position - (Vector2)transform.position;
-        };
+            if (highestDensityParticle.density < particles[i].density && (highestDensityParticle.position - particles[i].position).magnitude <= interactionRadius)
+                highestDensityParticle = particles[i];
+        }
     }
     void ApplyGravity()
     {
@@ -85,6 +90,7 @@ public class FluidSim : MonoBehaviour
     }
     void DoubleDensityRelaxation()
     {
+        outlineParticles.Clear();
         Parallel.For(0, particles.Count, i =>
         {
             float density = 0.0f;
@@ -104,6 +110,7 @@ public class FluidSim : MonoBehaviour
                 }
             }
             particles[i].density = density;
+            particles[i].nearDensity = nearDensity;
 
             // compute pressure & near-pressure
             float pressure = stiffness * (density - restDensity);
@@ -218,5 +225,11 @@ public class FluidSim : MonoBehaviour
     void ResolveCollisions()
     {
 
+    }
+
+    void OnDrawGizmos()
+    {
+        if (!Application.isPlaying)
+            return;
     }
 }
