@@ -41,7 +41,12 @@ public class Point : MonoBehaviour
         foreach (ContactPoint2D contact in collisionInfo.contacts)
         {
             fluidSim.particles[transform.GetSiblingIndex()].velocity = Vector2.Reflect(fluidSim.particles[transform.GetSiblingIndex()].velocity, contact.normal) * 0.5f;
+            fluidSim.particles[transform.GetSiblingIndex()].onGround = true;
         }
+    }
+    void OnCollisionExit2D(Collision2D collisionInfo)
+    {
+        fluidSim.particles[transform.GetSiblingIndex()].onGround = false;
     }
 
     void OnCollisionStay2D(Collision2D collisionInfo)
@@ -50,15 +55,11 @@ public class Point : MonoBehaviour
         {
             fluidSim.particles[transform.GetSiblingIndex()].velocity = new Vector2();
             fluidSim.particles[transform.GetSiblingIndex()].velocity += contact.normal * 0.01f;
+            fluidSim.particles[transform.GetSiblingIndex()].onGround = true;
         }
     }
 
     void OnDrawGizmos()
     {
-        // GUIStyle style = new GUIStyle();
-        // style.normal.textColor = Color.red;
-        // Handles.Label(transform.position, fluidSim.particles[transform.GetSiblingIndex()].springRestLengths.Count.ToString(), style);
-        // Gizmos.color = Color.green;
-        // Gizmos.DrawWireSphere(transform.position, radius);
     }
 }

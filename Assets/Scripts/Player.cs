@@ -22,17 +22,23 @@ public class Player : MonoBehaviour
             bubble.Deflate();
 
         Vector2 inputVector = new Vector2();
-        // RaycastHit2D hitGround = Physics2D.Raycast(bubble.transform.position, Vector2.down, bubble.radius, (-1) - (1 << LayerMask.NameToLayer("Point")));
-        bool hitGround = true;
 
-        if (Input.GetKey(KeyCode.A) && hitGround)
+        if (Input.GetKey(KeyCode.A))
             inputVector += Vector2.left * FluidSim.deltaTime * speed;
-        if (Input.GetKey(KeyCode.D) && hitGround)
+        if (Input.GetKey(KeyCode.D))
             inputVector += Vector2.right * FluidSim.deltaTime * speed;
-        if (Input.GetKey(KeyCode.Space) && hitGround)
-            inputVector += Vector2.up * jumpForce * 0.005f;
 
         bubble.Move(inputVector);
+
+        if (Input.GetKey(KeyCode.Space) && bubble.isOnGround)
+        {
+            bubble.Jump(jumpForce);
+        }
+
+        if(Input.GetKeyUp(KeyCode.Space))
+        {
+            bubble.EndJump();
+        }
     }
 
     void OnDrawGizmos()

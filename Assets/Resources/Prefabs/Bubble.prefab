@@ -53,6 +53,7 @@ MonoBehaviour:
   minPointCount: 60
   inflationInterval: 0.015
   deflationInterval: 0.015
+  neighborRadius: 0.5
 --- !u!50 &-402575618039242784
 Rigidbody2D:
   serializedVersion: 5
@@ -121,3 +122,4 @@ MonoBehaviour:
   quadraticViscosity: 5
   interactionRadius: 1.6
   dt: 0.008
+  minDist: 0

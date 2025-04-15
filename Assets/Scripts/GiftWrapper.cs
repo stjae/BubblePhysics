@@ -90,7 +90,7 @@ static public class GiftWrapper
 
         return lowestPoint;
     }
-    static Particle GetLowestParticle(Particle[] p)
+    public static Particle GetLowestParticle(Particle[] p)
     {
         Particle lowestParticle = p[0];
 
@@ -119,7 +119,6 @@ static public class GiftWrapper
 
         return angleCA < angleCB ? -1 : 1;
     }
-
     static float IsCCW(Vector2 v0, Vector2 v1, Vector2 v2)
     {
         return Vector3.Cross(v1 - v0, v2 - v1).z;
