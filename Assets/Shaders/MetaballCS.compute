@@ -22,12 +22,12 @@ int Count;
         float currInfl = Radius * Radius * Resolution;
         currInfl /= (pow(abs(texCoord.x - mb.x), 2.0) + pow(abs(texCoord.y - mb.y), 2.0));
         infl += currInfl;
-        col += float3(1, 1, 1) * currInfl;
+        col += float3(0, 1, 0) * currInfl;
     }
 
     float4 outColor = float4(0, 0, 0, 0);
     if (infl > Threshold)
-        outColor = float4(normalize(col), 1);
+        outColor = float4(normalize(col), 0.5);
 
     Result[id.xy] = outColor;
 }

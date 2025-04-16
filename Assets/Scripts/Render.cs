@@ -21,8 +21,9 @@ public class Render : MonoBehaviour
     Vector4[] objectWorldPositions;
     Vector4[] objectLocalPositions;
     Mesh metaballCanvasMesh;
-    Material metaballCanvasMeshMaterial;
-    RenderTexture metaballRenderTexture;
+    Mesh metaballCanvasMeshFinal;
+    Material metaballCanvasMeshMaterial; // center tile
+    RenderTexture metaballRenderTexture; // center tile
     int mbRenderTextureSize = 128;
     bool[,] mbRenderFlagsX;
     bool[,] mbRenderFlagsY;
@@ -44,6 +45,8 @@ public class Render : MonoBehaviour
     bool renderPoint;
     [SerializeField]
     bool renderMetaball;
+    [SerializeField]
+    Camera renderCamera;
     void Start()
     {
         bubble = transform.GetComponent<Bubble>();
@@ -135,6 +138,8 @@ public class Render : MonoBehaviour
 
         // render center tile
         RenderParams rp = new RenderParams(metaballCanvasMeshMaterial);
+        rp.camera = renderCamera;
+        rp.layer = LayerMask.NameToLayer("Bubble");
         metaballRenderCS.SetTexture(0, "Result", metaballRenderTexture);
         metaballRenderCS.SetVector("Offset", shaderOffset);
         metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
@@ -192,7 +197,6 @@ public class Render : MonoBehaviour
         metaballCanvasMesh.triangles = triangles;
         metaballCanvasMesh.uv = uv;
     }
-
     void CreateRenderTextures1D()
     {
         mbRenderTexturesX = new RenderTexture[2, textureTileCoverage];
@@ -317,6 +321,8 @@ public class Render : MonoBehaviour
                 if (mbRenderFlagsX[i, j])
                 {
                     RenderParams rp = new RenderParams(mbMaterialsX[i, j]);
+                    rp.camera = renderCamera;
+                    rp.layer = LayerMask.NameToLayer("Bubble");
                     metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesX[i, j]);
 
                     if (i == 0)
@@ -338,6 +344,8 @@ public class Render : MonoBehaviour
                 if (mbRenderFlagsY[i, j])
                 {
                     RenderParams rp = new RenderParams(mbMaterialsY[i, j]);
+                    rp.camera = renderCamera;
+                    rp.layer = LayerMask.NameToLayer("Bubble");
                     metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesY[i, j]);
 
                     if (i == 0)
@@ -370,6 +378,8 @@ public class Render : MonoBehaviour
                     if (mbRenderFlagsPosXY[i, j, k])
                     {
                         RenderParams rp = new RenderParams(mbMaterialsPosXY[i, j, k]);
+                        rp.camera = renderCamera;
+                        rp.layer = LayerMask.NameToLayer("Bubble");
                         metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesPosXY[i, j, k]);
 
                         Vector3 tileOffset = Vector3.right * (i + 1);
@@ -392,6 +402,8 @@ public class Render : MonoBehaviour
                     if (mbRenderFlagsNegXY[i, j, k])
                     {
                         RenderParams rp = new RenderParams(mbMaterialsNegXY[i, j, k]);
+                        rp.camera = renderCamera;
+                        rp.layer = LayerMask.NameToLayer("Bubble");
                         metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesNegXY[i, j, k]);
 
                         Vector3 tileOffset = Vector3.left * (i + 1);
@@ -414,7 +426,6 @@ public class Render : MonoBehaviour
             }
         }
     }
-
 
     void OnDrawGizmos()
     {
