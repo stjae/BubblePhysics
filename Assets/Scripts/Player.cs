@@ -9,6 +9,10 @@ public class Player : MonoBehaviour
     float speed;
     [SerializeField]
     float jumpForce;
+    float smoothSpeed = 2f;
+    Vector3 inputVector;
+    Vector3 smoothNormal;
+    bool isAbleToJump;
 
     void Start()
     {
@@ -21,27 +25,33 @@ public class Player : MonoBehaviour
         else if (Input.GetKey(KeyCode.Q))
             bubble.Deflate();
 
-        Vector2 inputVector = new Vector2();
+        if (Vector3.Angle(Vector3.up, bubble.groundHit.normal) <= 60 && bubble.groundHit)
+        {
+            isAbleToJump = true;
+            smoothNormal = Vector3.Lerp(smoothNormal, bubble.onGroundAvgNormal, Time.deltaTime * smoothSpeed).normalized;
+        }
+        else
+        {
+            isAbleToJump = false;
+            smoothNormal = Vector3.Lerp(smoothNormal, Vector3.up, Time.deltaTime * smoothSpeed).normalized;
+        }
+        inputVector = new Vector3();
 
         if (Input.GetKey(KeyCode.A))
-            inputVector += Vector2.left * FluidSim.deltaTime * speed;
+            inputVector += Vector3.Cross(smoothNormal, Vector3.back) * FluidSim.deltaTime * speed;
         if (Input.GetKey(KeyCode.D))
-            inputVector += Vector2.right * FluidSim.deltaTime * speed;
+            inputVector += Vector3.Cross(smoothNormal, Vector3.forward) * FluidSim.deltaTime * speed;
+        if (Input.GetKeyDown(KeyCode.Space) && isAbleToJump)
+            inputVector += Vector3.up * jumpForce;
+
 
         bubble.Move(inputVector);
-
-        if (Input.GetKey(KeyCode.Space) && bubble.isOnGround)
-        {
-            bubble.Jump(jumpForce);
-        }
-
-        if(Input.GetKeyUp(KeyCode.Space))
-        {
-            bubble.EndJump();
-        }
     }
 
     void OnDrawGizmos()
     {
+        if (!Application.isPlaying)
+            return;
+        Debug.DrawRay(bubble.transform.position, inputVector.normalized);
     }
 }

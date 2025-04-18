@@ -11,12 +11,14 @@ float4 Offset;
 float4 Positions[1000];
 int Count;
 
-[numthreads(8, 8, 1)] void CSMain(uint3 id : SV_DispatchThreadID) {
+[numthreads(8, 8, 1)] void CSMain(uint3 id : SV_DispatchThreadID)
+{
     float2 texCoord = int2(id.x - Resolution / 2, id.y - Resolution / 2);
 
     float3 col = float3(0, 0, 0);
     float infl = 0.0; // total influence
-    for (int i = 0; i < Count; i++) {
+    for (int i = 0; i < Count; i++)
+    {
         float4 mb = (Positions[i] + Offset) * Resolution;
         // influence from current metaball
         float currInfl = Radius * Radius * Resolution;
@@ -27,7 +29,7 @@ int Count;
 
     float4 outColor = float4(0, 0, 0, 0);
     if (infl > Threshold)
-        outColor = float4(normalize(col), 0.5);
+        outColor = float4(normalize(col), 0.7);
 
     Result[id.xy] = outColor;
 }

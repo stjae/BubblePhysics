@@ -100,6 +100,8 @@ MonoBehaviour:
   metaballThreshold: 0.01
   renderPoint: 0
   renderMetaball: 0
+  metaballRenderCamera: {fileID: 0}
+  pointRenderCamera: {fileID: 0}
 --- !u!114 &2757401040669036727
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -113,7 +115,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   restDensity: 30
-  stiffness: 0.1
+  stiffness: 0.13
   nearStiffness: 0.9
   springStiffness: 0.05
   yieldRatio: 0.25
@@ -122,4 +124,3 @@ MonoBehaviour:
   quadraticViscosity: 5
   interactionRadius: 1.6
   dt: 0.008
-  minDist: 0

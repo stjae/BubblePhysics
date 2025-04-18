@@ -1,4 +1,4 @@
-Shader "Custom/ClearOverlay"
+Shader "Custom/BackgroundOverlay"
 {
     Properties
     {
@@ -35,7 +35,7 @@ Shader "Custom/ClearOverlay"
 
             sampler2D _MainTex;
             sampler2D _Mask;
-            sampler2D _BackgroundTexture;
+            sampler2D _NoiseTexture;
             float4 _MainTex_ST;
 
             v2f vert(appdata v)
@@ -48,11 +48,24 @@ Shader "Custom/ClearOverlay"
 
             fixed4 frag(v2f i) : SV_Target
             {
+                float4 bg = tex2D(_MainTex, i.uv);
                 float4 mask = tex2D(_Mask, i.uv);
-                float4 color = tex2D(_MainTex, i.uv);
-                float4 bg = tex2D(_BackgroundTexture, i.uv);
-                float3 blended = lerp(float3(0, 0, 0), bg.rgb, 1 - mask.r);
-                return float4(blended, bg.a - (mask.r));
+                float4 color = lerp(bg, float4(0, 0, 0, 0), mask.r);
+
+                float4 noise = tex2D(_NoiseTexture, i.uv + _Time.x);
+                float4 noiseBg = tex2D(_MainTex, i.uv + noise.r * 0.1);
+
+                if (bg.a > 0 && mask.r == 1)
+                    return float4(0, 0, 0, 0);
+                else if (bg.a > 0 && mask.r > 0 && mask.r < 1)
+                {
+                    if (noiseBg.a > 0)
+                        return bg;
+                    else
+                        return float4(bg.rgb, 1 - mask.r);
+                }
+                else
+                    return color;
             }
             ENDCG
         }

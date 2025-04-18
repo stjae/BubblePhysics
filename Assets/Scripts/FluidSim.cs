@@ -18,6 +18,7 @@ public class Particle
     public float radius;
     public List<float?> springRestLengths;
     public bool onGround;
+    public Vector3 onGroundNormal;
 }
 public class FluidSim : MonoBehaviour
 {

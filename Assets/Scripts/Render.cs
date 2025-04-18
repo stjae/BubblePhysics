@@ -45,8 +45,6 @@ public class Render : MonoBehaviour
     bool renderPoint;
     [SerializeField]
     bool renderMetaball;
-    [SerializeField]
-    Camera renderCamera;
     void Start()
     {
         bubble = transform.GetComponent<Bubble>();
@@ -59,7 +57,7 @@ public class Render : MonoBehaviour
 
         CreateCanvasMesh();
 
-        metaballRenderTexture = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 24);
+        metaballRenderTexture = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
         metaballRenderTexture.enableRandomWrite = true;
         metaballRenderTexture.Create();
 
@@ -120,9 +118,7 @@ public class Render : MonoBehaviour
             }
         }
 
-        // if (renderPoint && transform.childCount > 0)
         // RenderPoint();
-        // if (renderMetaball && transform.childCount > 0)
         // RenderMetaball();
 
         RenderMetaballTiles();
@@ -138,8 +134,7 @@ public class Render : MonoBehaviour
 
         // render center tile
         RenderParams rp = new RenderParams(metaballCanvasMeshMaterial);
-        rp.camera = renderCamera;
-        rp.layer = LayerMask.NameToLayer("Bubble");
+        rp.layer = LayerMask.NameToLayer("MetaballRender");
         metaballRenderCS.SetTexture(0, "Result", metaballRenderTexture);
         metaballRenderCS.SetVector("Offset", shaderOffset);
         metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
@@ -165,6 +160,7 @@ public class Render : MonoBehaviour
         pointMaterial.SetFloat("Scale", Point.radius * 2);
 
         RenderParams rp = new RenderParams(pointMaterial);
+        rp.layer = LayerMask.NameToLayer("PointRender");
         Graphics.RenderMeshInstanced(rp, pointMesh, 0, objectToWorld, transform.childCount);
     }
 
@@ -205,7 +201,7 @@ public class Render : MonoBehaviour
         {
             for (int j = 0; j < textureTileCoverage; j++)
             {
-                mbRenderTexturesX[i, j] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 24);
+                mbRenderTexturesX[i, j] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
                 mbRenderTexturesX[i, j].enableRandomWrite = true;
                 mbRenderTexturesX[i, j].Create();
 
@@ -220,7 +216,7 @@ public class Render : MonoBehaviour
         {
             for (int j = 0; j < textureTileCoverage; j++)
             {
-                mbRenderTexturesY[i, j] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 24);
+                mbRenderTexturesY[i, j] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
                 mbRenderTexturesY[i, j].enableRandomWrite = true;
                 mbRenderTexturesY[i, j].Create();
 
@@ -243,11 +239,11 @@ public class Render : MonoBehaviour
             {
                 for (int k = 0; k < textureTileCoverage; k++)
                 {
-                    mbRenderTexturesPosXY[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 24);
+                    mbRenderTexturesPosXY[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
                     mbRenderTexturesPosXY[i, j, k].enableRandomWrite = true;
                     mbRenderTexturesPosXY[i, j, k].Create();
 
-                    mbRenderTexturesNegXY[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 24);
+                    mbRenderTexturesNegXY[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
                     mbRenderTexturesNegXY[i, j, k].enableRandomWrite = true;
                     mbRenderTexturesNegXY[i, j, k].Create();
 
@@ -321,8 +317,7 @@ public class Render : MonoBehaviour
                 if (mbRenderFlagsX[i, j])
                 {
                     RenderParams rp = new RenderParams(mbMaterialsX[i, j]);
-                    rp.camera = renderCamera;
-                    rp.layer = LayerMask.NameToLayer("Bubble");
+                    rp.layer = LayerMask.NameToLayer("MetaballRender");
                     metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesX[i, j]);
 
                     if (i == 0)
@@ -344,8 +339,7 @@ public class Render : MonoBehaviour
                 if (mbRenderFlagsY[i, j])
                 {
                     RenderParams rp = new RenderParams(mbMaterialsY[i, j]);
-                    rp.camera = renderCamera;
-                    rp.layer = LayerMask.NameToLayer("Bubble");
+                    rp.layer = LayerMask.NameToLayer("MetaballRender");
                     metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesY[i, j]);
 
                     if (i == 0)
@@ -378,8 +372,7 @@ public class Render : MonoBehaviour
                     if (mbRenderFlagsPosXY[i, j, k])
                     {
                         RenderParams rp = new RenderParams(mbMaterialsPosXY[i, j, k]);
-                        rp.camera = renderCamera;
-                        rp.layer = LayerMask.NameToLayer("Bubble");
+                        rp.layer = LayerMask.NameToLayer("MetaballRender");
                         metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesPosXY[i, j, k]);
 
                         Vector3 tileOffset = Vector3.right * (i + 1);
@@ -402,8 +395,7 @@ public class Render : MonoBehaviour
                     if (mbRenderFlagsNegXY[i, j, k])
                     {
                         RenderParams rp = new RenderParams(mbMaterialsNegXY[i, j, k]);
-                        rp.camera = renderCamera;
-                        rp.layer = LayerMask.NameToLayer("Bubble");
+                        rp.layer = LayerMask.NameToLayer("MetaballRender");
                         metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesNegXY[i, j, k]);
 
                         Vector3 tileOffset = Vector3.left * (i + 1);
@@ -429,10 +421,5 @@ public class Render : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        // for (int i = 0; i < transform.childCount; i++)
-        // {
-        //     Gizmos.color = Color.blue;
-        //     Gizmos.DrawWireSphere(transform.GetChild(i).position, Point.radius);
-        // }
     }
 }

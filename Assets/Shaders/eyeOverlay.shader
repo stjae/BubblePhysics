@@ -1,4 +1,4 @@
-Shader "Custom/ClearOverlay"
+Shader "Custom/EyeOverlay"
 {
     Properties
     {
@@ -34,8 +34,6 @@ Shader "Custom/ClearOverlay"
             };
 
             sampler2D _MainTex;
-            sampler2D _Mask;
-            sampler2D _BackgroundTexture;
             float4 _MainTex_ST;
 
             v2f vert(appdata v)
@@ -48,11 +46,8 @@ Shader "Custom/ClearOverlay"
 
             fixed4 frag(v2f i) : SV_Target
             {
-                float4 mask = tex2D(_Mask, i.uv);
                 float4 color = tex2D(_MainTex, i.uv);
-                float4 bg = tex2D(_BackgroundTexture, i.uv);
-                float3 blended = lerp(float3(0, 0, 0), bg.rgb, 1 - mask.r);
-                return float4(blended, bg.a - (mask.r));
+                return color;
             }
             ENDCG
         }

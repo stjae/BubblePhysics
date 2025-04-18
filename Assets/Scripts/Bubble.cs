@@ -1,12 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Mono.Cecil;
 using Unity.VisualScripting;
-using UnityEditor;
-using UnityEditor.SearchService;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
+using System.Linq;
 
 
 public class Bubble : MonoBehaviour
@@ -16,9 +13,10 @@ public class Bubble : MonoBehaviour
     [SerializeField]
     float pointRadius;
     [SerializeField]
-    float maxPointCount;
+    int maxPointCount;
+    public int MinPointCount { get { return minPointCount; } private set { minPointCount = value; } }
     [SerializeField]
-    float minPointCount;
+    int minPointCount;
     [SerializeField]
     float inflationInterval;
     [SerializeField]
@@ -27,19 +25,21 @@ public class Bubble : MonoBehaviour
     bool isInflating;
     bool isDeflating;
     List<List<int>> clusters;
-    List<int> largestCluster;
+    int prevClusterCount;
+    public List<int> mainCluster { get; private set; }
     List<bool> visited;
     [SerializeField]
     float neighborRadius;
-    public bool isOnGround { get; private set; }
+    public RaycastHit2D groundHit { get; private set; }
     Vector2 onGroundAvgPos;
+    public Vector3 onGroundAvgNormal { get; private set; }
 
     void Start()
     {
         fluidSim = GetComponent<FluidSim>();
         StartCoroutine(InflateInitialCoroutine());
         clusters = new List<List<int>>();
-        largestCluster = new List<int>();
+        mainCluster = new List<int>();
         visited = new List<bool>();
     }
 
@@ -59,11 +59,11 @@ public class Bubble : MonoBehaviour
     void UpdatePosition()
     {
         Vector2 center = new Vector2();
-        foreach (int i in largestCluster)
+        foreach (int i in mainCluster)
         {
             center += fluidSim.particles[i].position;
         }
-        transform.position = center / largestCluster.Count;
+        transform.position = center / Math.Max(mainCluster.Count, 1);
     }
 
     public void Inflate()
@@ -86,7 +86,7 @@ public class Bubble : MonoBehaviour
 
     public void Move(Vector2 inputVector)
     {
-        foreach (int i in largestCluster)
+        foreach (int i in mainCluster)
         {
             fluidSim.particles[i].velocity += inputVector;
         }
@@ -94,7 +94,7 @@ public class Bubble : MonoBehaviour
 
     public void Jump(float force)
     {
-        foreach (int i in largestCluster)
+        foreach (int i in mainCluster)
         {
             fluidSim.particles[i].velocity.y += force;
         }
@@ -102,7 +102,7 @@ public class Bubble : MonoBehaviour
 
     public void EndJump()
     {
-        foreach (int i in largestCluster)
+        foreach (int i in mainCluster)
         {
             fluidSim.particles[i].velocity.y *= 0.8f;
         }
@@ -112,24 +112,25 @@ public class Bubble : MonoBehaviour
     {
         int onGroundCount = 0;
         onGroundAvgPos = new Vector2();
-        foreach (int i in largestCluster)
+        onGroundAvgNormal = new Vector3();
+        foreach (int i in mainCluster)
         {
             if (fluidSim.particles[i].onGround)
             {
                 onGroundAvgPos += fluidSim.particles[i].position;
+                onGroundAvgNormal += fluidSim.particles[i].onGroundNormal;
                 onGroundCount++;
             }
         }
-        onGroundAvgPos /= onGroundCount;
+        if (onGroundCount > 0)
+        {
+            onGroundAvgPos /= onGroundCount;
+            onGroundAvgNormal /= onGroundCount;
+        }
         int layerMask = (-1) - (1 << LayerMask.NameToLayer("Point"));
-        float length = ((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 2;
+        float length = ((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 4;
         RaycastHit2D hit = Physics2D.Raycast(transform.position, onGroundAvgPos - (Vector2)transform.position, length, layerMask);
-        RaycastHit2D onGroundHit = Physics2D.Raycast(transform.position, -hit.normal, length, layerMask);
-        Debug.DrawRay(transform.position, onGroundAvgPos - (Vector2)transform.position);
-        if (onGroundHit)
-            isOnGround = true;
-        else
-            isOnGround = false;
+        groundHit = Physics2D.Raycast(transform.position, -hit.normal, length, layerMask);
     }
 
     IEnumerator InflateInitialCoroutine()
@@ -196,12 +197,12 @@ public class Bubble : MonoBehaviour
             clusters.Add(cluster);
         }
 
-        largestCluster.Clear();
+        mainCluster.Clear();
         foreach (List<int> cluster in clusters)
         {
-            if (cluster.Count > largestCluster.Count)
+            if (cluster.Count > mainCluster.Count)
             {
-                largestCluster = cluster;
+                mainCluster = cluster;
             }
         }
     }
@@ -235,9 +236,5 @@ public class Bubble : MonoBehaviour
     {
         if (!Application.isPlaying)
             return;
-
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(onGroundAvgPos, Point.radius);
     }
-
 }
