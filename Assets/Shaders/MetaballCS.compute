@@ -29,7 +29,7 @@ int Count;
 
     float4 outColor = float4(0, 0, 0, 0);
     if (infl > Threshold)
-        outColor = float4(normalize(col), 0.7);
+        outColor = float4(normalize(col), 1);
 
     Result[id.xy] = outColor;
 }

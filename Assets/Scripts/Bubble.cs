@@ -1,10 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
-using System.Linq;
-
 
 public class Bubble : MonoBehaviour
 {
@@ -25,7 +22,6 @@ public class Bubble : MonoBehaviour
     bool isInflating;
     bool isDeflating;
     List<List<int>> clusters;
-    int prevClusterCount;
     public List<int> mainCluster { get; private set; }
     List<bool> visited;
     [SerializeField]
@@ -97,14 +93,6 @@ public class Bubble : MonoBehaviour
         foreach (int i in mainCluster)
         {
             fluidSim.particles[i].velocity.y += force;
-        }
-    }
-
-    public void EndJump()
-    {
-        foreach (int i in mainCluster)
-        {
-            fluidSim.particles[i].velocity.y *= 0.8f;
         }
     }
 
@@ -220,21 +208,5 @@ public class Bubble : MonoBehaviour
             }
         }
         return neighbors;
-    }
-
-    Vector2 GetClusterPos(List<int> cluster)
-    {
-        Vector2 pos = new Vector2();
-        foreach (int i in cluster)
-        {
-            pos += fluidSim.particles[i].position;
-        }
-        return pos / cluster.Count;
-    }
-
-    void OnDrawGizmos()
-    {
-        if (!Application.isPlaying)
-            return;
     }
 }

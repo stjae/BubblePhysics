@@ -51,10 +51,8 @@ Shader "Custom/RefractionOverlay"
                 float4 mask = tex2D(_MainTex, i.uv);
                 float4 noise = tex2D(_NoiseTexture, i.uv + _Time.x);
                 float4 bg = tex2D(_BackgroundTexture, i.uv + noise.r * 0.1);
-                if (bg.a > 0)
-                    return float4(bg.rgb, mask.r);
-                else
-                    return float4(0, 0, 0, 0);
+
+                return float4(bg.rgb, mask.r);
             }
             ENDCG
         }

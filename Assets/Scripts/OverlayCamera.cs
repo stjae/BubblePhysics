@@ -3,6 +3,8 @@ using UnityEngine.Rendering;
 
 public class OverlayCamera : MonoBehaviour
 {
+    const int textureWidth = 1920;
+    const int textureHeight = 1080;
     [SerializeField]
     RenderTexture pointRT;
     [SerializeField]
@@ -26,7 +28,7 @@ public class OverlayCamera : MonoBehaviour
     [SerializeField]
     RenderTexture metaballMaskBlurUpscaleRT;
     [SerializeField]
-    RenderTexture metaballMaskBlurOultineRT;
+    RenderTexture metaballMaskBlurOutlineRT;
     [SerializeField]
     Shader backgroundOverlayShader;
     [SerializeField]
@@ -60,20 +62,19 @@ public class OverlayCamera : MonoBehaviour
     void Start()
     {
         CreateQuadMesh();
-        SetTextureSize();
 
         backgroundMaterial = new Material(backgroundOverlayShader);
         backgroundMaterial.SetTexture("_MainTex", backgroundRT);
-        backgroundMaterial.SetTexture("_Mask", metaballMaskBlurOultineRT);
+        backgroundMaterial.SetTexture("_Mask", metaballMaskBlurOutlineRT);
         backgroundMaterial.SetTexture("_NoiseTexture", noiseTexture);
 
         clearMaterial = new Material(clearOverlayShader);
         clearMaterial.SetTexture("_MainTex", metaballRT);
-        clearMaterial.SetTexture("_Mask", metaballMaskBlurOultineRT);
+        clearMaterial.SetTexture("_Mask", metaballMaskBlurOutlineRT);
         clearMaterial.SetTexture("_BackgroundTexture", backgroundRT);
 
         refractionMaterial = new Material(refractionOverlayShader);
-        refractionMaterial.SetTexture("_MainTex", metaballMaskBlurOultineRT);
+        refractionMaterial.SetTexture("_MainTex", metaballMaskBlurOutlineRT);
         refractionMaterial.SetTexture("_BackgroundTexture", backgroundRT);
         refractionMaterial.SetTexture("_NoiseTexture", noiseTexture);
 
@@ -82,19 +83,22 @@ public class OverlayCamera : MonoBehaviour
 
         metaballMaterial = new Material(metaballOverlayShader);
         metaballMaterial.SetTexture("_MainTex", metaballRT);
+        metaballMaterial.SetTexture("_Mask", metaballMaskRT);
+        metaballMaterial.SetTexture("_MaskBlurOutline", metaballMaskBlurOutlineRT);
+        metaballMaterial.SetTexture("_BackgroundTexture", backgroundRT);
 
         blurXMaterial = new Material(blurXShader);
         blurXMaterial.SetTexture("_MainTex", metaballMaskInverseRT);
-        blurXMaterial.SetFloat("_Width", Screen.width / downSampleFactor);
-        blurXMaterial.SetFloat("_Height", Screen.height / downSampleFactor);
+        blurXMaterial.SetFloat("_Width", textureWidth / downSampleFactor);
+        blurXMaterial.SetFloat("_Height", textureHeight / downSampleFactor);
         blurYMaterial = new Material(blurYShader);
         blurYMaterial.SetTexture("_MainTex", metaballMaskBlurXRT);
-        blurYMaterial.SetFloat("_Width", Screen.width / downSampleFactor);
-        blurYMaterial.SetFloat("_Height", Screen.height / downSampleFactor);
+        blurYMaterial.SetFloat("_Width", textureWidth / downSampleFactor);
+        blurYMaterial.SetFloat("_Height", textureHeight / downSampleFactor);
 
         separableGaussianBlurMaterial = new Material(separableGaussianBlurShader);
-        separableGaussianBlurMaterial.SetFloat("_Width", Screen.width);
-        separableGaussianBlurMaterial.SetFloat("_Height", Screen.height);
+        separableGaussianBlurMaterial.SetFloat("_Width", textureWidth);
+        separableGaussianBlurMaterial.SetFloat("_Height", textureHeight);
     }
 
     void OnEnable()
@@ -181,38 +185,5 @@ public class OverlayCamera : MonoBehaviour
         quadMesh.vertices = vertices;
         quadMesh.triangles = triangles;
         quadMesh.uv = uv;
-    }
-
-    void SetTextureSize()
-    {
-        pointRT.width = Screen.width;
-        pointRT.height = Screen.height;
-
-        metaballRT.width = Screen.width;
-        metaballRT.height = Screen.height;
-
-        backgroundRT.width = Screen.width;
-        backgroundRT.height = Screen.height;
-
-        eyeRT.width = Screen.width;
-        eyeRT.height = Screen.height;
-
-        int downSampledSize = (int)(Screen.width / downSampleFactor);
-        metaballMaskRT.width = downSampledSize;
-        metaballMaskRT.height = downSampledSize;
-
-        metaballMaskInverseRT.width = downSampledSize;
-        metaballMaskInverseRT.height = downSampledSize;
-
-        metaballMaskBlurXRT.width = downSampledSize;
-        metaballMaskBlurXRT.height = downSampledSize;
-        metaballMaskBlurYRT.width = downSampledSize;
-        metaballMaskBlurYRT.height = downSampledSize;
-
-        metaballMaskBlurUpscaleRT.width = Screen.width;
-        metaballMaskBlurUpscaleRT.height = Screen.height;
-
-        metaballMaskBlurOultineRT.width = Screen.width;
-        metaballMaskBlurOultineRT.height = Screen.height;
     }
 }

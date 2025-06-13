@@ -34,6 +34,9 @@ Shader "Custom/MetaballOverlay"
             };
 
             sampler2D _MainTex;
+            sampler2D _Mask;
+            sampler2D _MaskBlurOutline;
+            sampler2D _BackgroundTexture;
             float4 _MainTex_ST;
 
             v2f vert(appdata v)
@@ -47,7 +50,12 @@ Shader "Custom/MetaballOverlay"
             fixed4 frag(v2f i) : SV_Target
             {
                 float4 color = tex2D(_MainTex, i.uv);
-                return color;
+
+                if(tex2D(_MaskBlurOutline, i.uv).r > 0)
+                    return float4(color.rgb, clamp(tex2D(_MaskBlurOutline, i.uv).r, 0.3, 0.5));
+                else
+                    return tex2D(_BackgroundTexture, i.uv);
+                // clamp(tex2D(_MaskBlurOutline, i.uv).r, 0.4, 0.5)
             }
             ENDCG
         }

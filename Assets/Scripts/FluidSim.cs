@@ -1,15 +1,11 @@
-using System;
 using System.Threading.Tasks;
-using Unity.VisualScripting;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Reflection;
-using UnityEditor;
 
 public class Particle
 {
     public Vector2 position;
-    public Vector2 localPosition; // TODO: prevent access to set
+    public Vector2 localPosition;
     public Vector2 prevPosition;
     public Vector2 velocity;
     public float density;
@@ -66,7 +62,6 @@ public class FluidSim : MonoBehaviour
         AdjustSprings();
         ApplySpringDisplacement();
         DoubleDensityRelaxation();
-        ResolveCollisions();
 
         float dtInv = 1 / dt;
         for (int i = particles.Count - 1; i >= 0; i--)
@@ -214,16 +209,5 @@ public class FluidSim : MonoBehaviour
                 }
             }
         });
-    }
-
-    void ResolveCollisions()
-    {
-
-    }
-
-    void OnDrawGizmos()
-    {
-        if (!Application.isPlaying)
-            return;
     }
 }

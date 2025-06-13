@@ -1,6 +1,5 @@
-using Unity.VisualScripting;
-using UnityEditor;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Player : MonoBehaviour
 {
@@ -46,12 +45,14 @@ public class Player : MonoBehaviour
 
 
         bubble.Move(inputVector);
-    }
 
-    void OnDrawGizmos()
-    {
-        if (!Application.isPlaying)
-            return;
-        Debug.DrawRay(bubble.transform.position, inputVector.normalized);
+        if (bubble.transform.position.y < -10)
+        {
+            Scene currentScene = SceneManager.GetActiveScene();
+            SceneManager.LoadScene(currentScene.name);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+            Application.Quit();
     }
 }

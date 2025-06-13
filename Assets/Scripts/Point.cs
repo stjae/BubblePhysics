@@ -1,8 +1,4 @@
 using UnityEngine;
-using System.Collections.Generic;
-using UnityEditor;
-using System;
-
 
 public class Point : MonoBehaviour
 {
@@ -22,7 +18,6 @@ public class Point : MonoBehaviour
 
     void FixedUpdate()
     {
-        // TODO: if statement
         UpdateSprings();
         transform.GetComponent<CircleCollider2D>().radius = radius;
         transform.position = fluidSim.particles[transform.GetSiblingIndex()].position;
@@ -59,9 +54,5 @@ public class Point : MonoBehaviour
             fluidSim.particles[transform.GetSiblingIndex()].onGround = true;
             fluidSim.particles[transform.GetSiblingIndex()].onGroundNormal = contact.normal;
         }
-    }
-
-    void OnDrawGizmos()
-    {
     }
 }

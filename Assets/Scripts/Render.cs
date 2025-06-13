@@ -1,5 +1,4 @@
 using System;
-using Unity.Mathematics;
 using UnityEngine;
 
 public class Render : MonoBehaviour
@@ -21,7 +20,6 @@ public class Render : MonoBehaviour
     Vector4[] objectWorldPositions;
     Vector4[] objectLocalPositions;
     Mesh metaballCanvasMesh;
-    Mesh metaballCanvasMeshFinal;
     Material metaballCanvasMeshMaterial; // center tile
     RenderTexture metaballRenderTexture; // center tile
     int mbRenderTextureSize = 128;
@@ -41,10 +39,10 @@ public class Render : MonoBehaviour
     Vector3 shaderOffset;
     Vector3 positionOffset;
 
-    [SerializeField]
-    bool renderPoint;
-    [SerializeField]
-    bool renderMetaball;
+    // [SerializeField]
+    // bool renderPoint;
+    // [SerializeField]
+    // bool renderMetaball;
     void Start()
     {
         bubble = transform.GetComponent<Bubble>();
@@ -303,11 +301,6 @@ public class Render : MonoBehaviour
         }
     }
 
-    void RenderTextureTileCenter()
-    {
-
-    }
-
     void RenderTextureTiles1D()
     {
         for (int i = 0; i < 2; i++)
@@ -417,9 +410,5 @@ public class Render : MonoBehaviour
                 }
             }
         }
-    }
-
-    void OnDrawGizmos()
-    {
     }
 }
