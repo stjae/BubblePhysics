@@ -21,12 +21,25 @@ public class EyeAnimation : MonoBehaviour
     Vector3 originalScale;
     Vector3 smoothNormal;
     float smoothSpeed = 2f;
+
     void Start()
     {
         transform.position = target.transform.position;
         bubble = target.transform.GetComponent<Bubble>();
         smoothNormal = Vector3.up;
         StartCoroutine(BlinkRoutine());
+    }
+
+    void FixedUpdate()
+    {
+        transform.position = Vector3.SmoothDamp(transform.position, target.transform.position, ref velocity, smoothTime);
+    }
+
+    void Update()
+    {
+        AlignEyeAngle();
+        AdjustEyeDirection();
+        AdjustEyePositionScale();
     }
 
     IEnumerator BlinkRoutine()
@@ -61,12 +74,8 @@ public class EyeAnimation : MonoBehaviour
         transform.localScale = originalScale;
     }
 
-    void FixedUpdate()
-    {
-        transform.position = Vector3.SmoothDamp(transform.position, target.transform.position, ref velocity, smoothTime);
-    }
-
-    void Update()
+    void AlignEyeAngle() // Make the eye align with the slope when on ground with an inclination of 60 degrees or less
+                         // 傾斜が60度以下の地面にいるとき、目の向きをその傾斜に合わせる
     {
         if (Vector3.Angle(Vector3.up, bubble.groundHit.normal) <= 60 && bubble.groundHit)
             smoothNormal = Vector3.Lerp(smoothNormal, bubble.onGroundAvgNormal, Time.deltaTime * smoothSpeed).normalized;
@@ -74,16 +83,24 @@ public class EyeAnimation : MonoBehaviour
             smoothNormal = Vector3.Lerp(smoothNormal, Vector3.up, Time.deltaTime * smoothSpeed).normalized;
         transform.up = smoothNormal;
 
-        float scale = (float)bubble.mainCluster.Count / bubble.MinPointCount;
+    }
+
+    void AdjustEyeDirection()
+    {
+        float scale = (float)bubble.playerControlledCluster.Count / bubble.MinPointCount;
         transform.localScale = direction * (float)Math.Sqrt(scale);
         if (Input.GetKeyDown(KeyCode.A))
             direction = new Vector3(1, 1, 1);
         else if (Input.GetKeyDown(KeyCode.D))
             direction = new Vector3(-1, 1, 1);
+    }
+
+    void AdjustEyePositionScale()
+    {
+        rightEye.transform.localPosition = new Vector2(offset.x, offset.y);
+        leftEye.transform.localPosition = new Vector2(-1f * offset.x, offset.y);
 
         rightEye.transform.localScale = Vector2.one * eyeScale;
         leftEye.transform.localScale = Vector2.one * eyeScale;
-        rightEye.transform.localPosition = offset;
-        leftEye.transform.localPosition = offset * Vector2.left;
     }
 }

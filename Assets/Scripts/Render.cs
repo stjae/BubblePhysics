@@ -5,63 +5,64 @@ public class Render : MonoBehaviour
 {
     Bubble bubble;
     [SerializeField]
-    Mesh pointMesh;
-    [SerializeField]
-    Shader pointShader;
-    Material pointMaterial;
-    [SerializeField]
-    Shader metaballShader;
-    Material metaballMaterial;
-    [SerializeField]
     ComputeShader metaballRenderCS;
     [SerializeField]
     float metaballThreshold;
     Matrix4x4[] objectToWorld;
     Vector4[] objectWorldPositions;
     Vector4[] objectLocalPositions;
-    Mesh metaballCanvasMesh;
-    Material metaballCanvasMeshMaterial; // center tile
-    RenderTexture metaballRenderTexture; // center tile
-    int mbRenderTextureSize = 128;
+    Mesh metaballCanvasMesh; // Quad used to display the metaball render texture 
+                             // メタボールレンダーテクスチャを適用する四角形メッシュ
+    Material metaballCanvasMeshMaterial;
+    int mbRenderTextureSize = 128; // Size of a single metaball render texture 
+                                   // メタボールのレンダリングに使用するレンダーテクスチャ1枚の解像度
+    RenderTexture metaballRenderTexture; // The central(x=0, y=0) render texture for rendering metaballs 
+                                         // メタボールのレンダリングに使用する中心(x=0, y=0)レンダーテクスチャ
+    RenderTexture[,] mbRenderTexturesX; // Metaball render texture array at X-axis and Y=0 position(except x=0, y=0) 
+                                        // X軸上、Y=0の位置に配置された（X=0, y=0を除く）メタボールレンダーテクスチャ配列
+    RenderTexture[,] mbRenderTexturesY; // Metaball render texture array at Y-axis and X=0 position(except x=0, y=0) 
+                                        // Y軸上、X=0の位置に配置された（X=0, y=0を除く）メタボールレンダーテクスチャ配列
+    RenderTexture[,,] mbRenderTexturesPosX; // Metaball render texture array at positive X-axis(except Y=0 position) 
+                                            // Dimensions represent: 
+                                            // [X position(only positive)][Y direction (+/-)][Y coordinate (excluding Y=0)] 
+                                            // X軸の正方向（Y=0を除く）に配置されたメタボール用レンダーテクスチャ配列
+                                            // 各次元の意味：
+                                            // [X座標（正の値のみ）][Y方向（正/負）][Y座標（Y=0を除く）]
+    RenderTexture[,,] mbRenderTexturesNegX; // Metaball render texture array at negative X-axis(except Y=0 position) 
+                                            // Dimensions represent: 
+                                            // [X position(only negative)][Y direction (+/-)][Y coordinate (excluding Y=0)] 
+                                            // X軸の負方向（Y=0を除く）に配置されたメタボール用レンダーテクスチャ配列
+                                            // 各次元の意味：
+                                            // [X座標（負の値のみ）][Y方向（正/負）][Y座標（Y=0を除く）]
     bool[,] mbRenderFlagsX;
     bool[,] mbRenderFlagsY;
-    RenderTexture[,] mbRenderTexturesX;
-    RenderTexture[,] mbRenderTexturesY;
-    Material[,] mbMaterialsX;
-    Material[,] mbMaterialsY;
-    bool[,,] mbRenderFlagsPosXY;
-    bool[,,] mbRenderFlagsNegXY;
-    RenderTexture[,,] mbRenderTexturesPosXY;
-    RenderTexture[,,] mbRenderTexturesNegXY;
-    Material[,,] mbMaterialsPosXY;
-    Material[,,] mbMaterialsNegXY;
+    bool[,,] mbRenderFlagsPosX;
+    bool[,,] mbRenderFlagsNegX; // The signal array is used to determine which points should be rendered.
+                                // It marks positions where points are located with true, and those positions will be rendered.
+                                // Positions with false values are ignored during rendering.
+                                // シグナル配列は、ポイントが位置する場所を決定するために使用されます。
+                                // 配列内でtrueの値を持つ位置がレンダリングされ、それ以外の場所は無視されます。
+    RenderParams renderParams;
+    MaterialPropertyBlock materialPropertyBlock;
     static public int textureTileCoverage = 10;
     Vector3 shaderOffset;
     Vector3 positionOffset;
 
-    // [SerializeField]
-    // bool renderPoint;
-    // [SerializeField]
-    // bool renderMetaball;
     void Start()
     {
         bubble = transform.GetComponent<Bubble>();
 
-        pointMaterial = new Material(pointShader);
-        pointMaterial.enableInstancing = true;
-
-        metaballMaterial = new Material(metaballShader);
-        metaballMaterial.enableInstancing = true;
-
         CreateCanvasMesh();
+
+        materialPropertyBlock = new MaterialPropertyBlock();
+        metaballCanvasMeshMaterial = new Material(Shader.Find("Unlit/Transparent"));
+        renderParams = new RenderParams(metaballCanvasMeshMaterial);
+        renderParams.matProps = materialPropertyBlock;
+        renderParams.layer = LayerMask.NameToLayer("MetaballRender");
 
         metaballRenderTexture = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
         metaballRenderTexture.enableRandomWrite = true;
         metaballRenderTexture.Create();
-
-        metaballCanvasMeshMaterial = new Material(Shader.Find("Unlit/Transparent"));
-        metaballCanvasMeshMaterial.mainTexture = metaballRenderTexture;
-
         CreateRenderTextures1D();
         CreateRenderTextures2D();
     }
@@ -75,22 +76,23 @@ public class Render : MonoBehaviour
         mbRenderFlagsX = new bool[2, textureTileCoverage];
         mbRenderFlagsY = new bool[2, textureTileCoverage];
 
-        mbRenderFlagsPosXY = new bool[textureTileCoverage, 2, textureTileCoverage];
-        mbRenderFlagsNegXY = new bool[textureTileCoverage, 2, textureTileCoverage];
+        mbRenderFlagsPosX = new bool[textureTileCoverage, 2, textureTileCoverage];
+        mbRenderFlagsNegX = new bool[textureTileCoverage, 2, textureTileCoverage];
 
         shaderOffset = transform.position - bubble.transform.position;
         positionOffset = bubble.transform.position - transform.position;
 
-        Vector3[] pointOffset = new Vector3[9];
+        Vector3[] pointOffset = new Vector3[9]; // Since a point is too small, an offset is used to expand the area around the point 
+                                                // ポイントは非常に小さいため、オフセットを使用してポイント周辺の範囲も有効として扱う
         pointOffset[0] = Vector3.zero;
-        pointOffset[1] = Vector3.up * Point.radius * 3;
-        pointOffset[2] = (Vector3.up + Vector3.right).normalized * Point.radius * 3;
-        pointOffset[3] = Vector3.right * Point.radius * 3;
-        pointOffset[4] = (Vector3.right + Vector3.down).normalized * Point.radius * 3;
-        pointOffset[5] = Vector3.down * Point.radius * 3;
-        pointOffset[6] = (Vector3.down + Vector3.left).normalized * Point.radius * 3;
-        pointOffset[7] = Vector3.left * Point.radius * 3;
-        pointOffset[8] = (Vector3.left + Vector3.up).normalized * Point.radius * 3;
+        pointOffset[1] = 3 * Point.radius * Vector3.up;
+        pointOffset[2] = 3 * Point.radius * (Vector3.up + Vector3.right).normalized;
+        pointOffset[3] = 3 * Point.radius * Vector3.right;
+        pointOffset[4] = 3 * Point.radius * (Vector3.right + Vector3.down).normalized;
+        pointOffset[5] = 3 * Point.radius * Vector3.down;
+        pointOffset[6] = 3 * Point.radius * (Vector3.down + Vector3.left).normalized;
+        pointOffset[7] = 3 * Point.radius * Vector3.left;
+        pointOffset[8] = 3 * Point.radius * (Vector3.left + Vector3.up).normalized;
 
         for (int i = 0; i < transform.childCount; i++)
         {
@@ -110,14 +112,10 @@ public class Render : MonoBehaviour
 
                 SignalRenderFlagsX(signalPosition);
                 SignalRenderFlagsY(signalPosition);
-
-                SignalRenderFlagsPosXY(signalPosition);
-                SignalRenderFlagsNegXY(signalPosition);
+                SignalRenderFlagsPosX(signalPosition);
+                SignalRenderFlagsNegX(signalPosition);
             }
         }
-
-        // RenderPoint();
-        // RenderMetaball();
 
         RenderMetaballTiles();
     }
@@ -130,36 +128,9 @@ public class Render : MonoBehaviour
         metaballRenderCS.SetInt("Count", transform.childCount);
         metaballRenderCS.SetVectorArray("Positions", objectLocalPositions);
 
-        // render center tile
-        RenderParams rp = new RenderParams(metaballCanvasMeshMaterial);
-        rp.layer = LayerMask.NameToLayer("MetaballRender");
-        metaballRenderCS.SetTexture(0, "Result", metaballRenderTexture);
-        metaballRenderCS.SetVector("Offset", shaderOffset);
-        metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-        Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position));
-
+        RenderCenterTextureTile();
         RenderTextureTiles1D();
         RenderTextureTiles2D();
-    }
-
-    void RenderMetaball()
-    {
-        metaballMaterial.SetVectorArray("Positions", objectWorldPositions);
-        metaballMaterial.SetInteger("Count", transform.childCount);
-        metaballMaterial.SetFloat("Scale", Point.radius * 2);
-        metaballMaterial.SetFloat("Threshold", metaballThreshold);
-
-        RenderParams rp = new RenderParams(metaballMaterial);
-        Graphics.RenderMeshInstanced(rp, pointMesh, 0, objectToWorld, transform.childCount);
-    }
-
-    void RenderPoint()
-    {
-        pointMaterial.SetFloat("Scale", Point.radius * 2);
-
-        RenderParams rp = new RenderParams(pointMaterial);
-        rp.layer = LayerMask.NameToLayer("PointRender");
-        Graphics.RenderMeshInstanced(rp, pointMesh, 0, objectToWorld, transform.childCount);
     }
 
     void CreateCanvasMesh()
@@ -194,7 +165,6 @@ public class Render : MonoBehaviour
     void CreateRenderTextures1D()
     {
         mbRenderTexturesX = new RenderTexture[2, textureTileCoverage];
-        mbMaterialsX = new Material[2, textureTileCoverage];
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < textureTileCoverage; j++)
@@ -202,14 +172,10 @@ public class Render : MonoBehaviour
                 mbRenderTexturesX[i, j] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
                 mbRenderTexturesX[i, j].enableRandomWrite = true;
                 mbRenderTexturesX[i, j].Create();
-
-                mbMaterialsX[i, j] = new Material(Shader.Find("Unlit/Transparent"));
-                mbMaterialsX[i, j].mainTexture = mbRenderTexturesX[i, j];
             }
         }
 
         mbRenderTexturesY = new RenderTexture[2, textureTileCoverage];
-        mbMaterialsY = new Material[2, textureTileCoverage];
         for (int i = 0; i < 2; i++)
         {
             for (int j = 0; j < textureTileCoverage; j++)
@@ -217,19 +183,14 @@ public class Render : MonoBehaviour
                 mbRenderTexturesY[i, j] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
                 mbRenderTexturesY[i, j].enableRandomWrite = true;
                 mbRenderTexturesY[i, j].Create();
-
-                mbMaterialsY[i, j] = new Material(Shader.Find("Unlit/Transparent"));
-                mbMaterialsY[i, j].mainTexture = mbRenderTexturesY[i, j];
             }
         }
     }
 
     void CreateRenderTextures2D()
     {
-        mbRenderTexturesPosXY = new RenderTexture[textureTileCoverage, 2, textureTileCoverage];
-        mbRenderTexturesNegXY = new RenderTexture[textureTileCoverage, 2, textureTileCoverage];
-        mbMaterialsPosXY = new Material[textureTileCoverage, 2, textureTileCoverage];
-        mbMaterialsNegXY = new Material[textureTileCoverage, 2, textureTileCoverage];
+        mbRenderTexturesPosX = new RenderTexture[textureTileCoverage, 2, textureTileCoverage];
+        mbRenderTexturesNegX = new RenderTexture[textureTileCoverage, 2, textureTileCoverage];
 
         for (int i = 0; i < textureTileCoverage; i++)
         {
@@ -237,19 +198,13 @@ public class Render : MonoBehaviour
             {
                 for (int k = 0; k < textureTileCoverage; k++)
                 {
-                    mbRenderTexturesPosXY[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
-                    mbRenderTexturesPosXY[i, j, k].enableRandomWrite = true;
-                    mbRenderTexturesPosXY[i, j, k].Create();
+                    mbRenderTexturesPosX[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
+                    mbRenderTexturesPosX[i, j, k].enableRandomWrite = true;
+                    mbRenderTexturesPosX[i, j, k].Create();
 
-                    mbRenderTexturesNegXY[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
-                    mbRenderTexturesNegXY[i, j, k].enableRandomWrite = true;
-                    mbRenderTexturesNegXY[i, j, k].Create();
-
-                    mbMaterialsPosXY[i, j, k] = new Material(Shader.Find("Unlit/Transparent"));
-                    mbMaterialsPosXY[i, j, k].mainTexture = mbRenderTexturesPosXY[i, j, k];
-
-                    mbMaterialsNegXY[i, j, k] = new Material(Shader.Find("Unlit/Transparent"));
-                    mbMaterialsNegXY[i, j, k].mainTexture = mbRenderTexturesNegXY[i, j, k];
+                    mbRenderTexturesNegX[i, j, k] = new RenderTexture(mbRenderTextureSize, mbRenderTextureSize, 0, RenderTextureFormat.ARGBFloat);
+                    mbRenderTexturesNegX[i, j, k].enableRandomWrite = true;
+                    mbRenderTexturesNegX[i, j, k].Create();
                 }
             }
         }
@@ -279,29 +234,40 @@ public class Render : MonoBehaviour
             mbRenderFlagsY[1, (int)Math.Round(Math.Abs(position.y)) - 1] = true;
     }
 
-    void SignalRenderFlagsPosXY(Vector3 position)
+    void SignalRenderFlagsPosX(Vector3 position)
     {
         if (position.x > 0.5)
         {
             if (position.y > 0.5)
-                mbRenderFlagsPosXY[(int)Math.Round(position.x) - 1, 0, (int)Math.Round(position.y) - 1] = true;
+                mbRenderFlagsPosX[(int)Math.Round(position.x) - 1, 0, (int)Math.Round(position.y) - 1] = true;
             else if (position.y < -0.5)
-                mbRenderFlagsPosXY[(int)Math.Round(position.x) - 1, 1, (int)Math.Round(Math.Abs(position.y)) - 1] = true;
+                mbRenderFlagsPosX[(int)Math.Round(position.x) - 1, 1, (int)Math.Round(Math.Abs(position.y)) - 1] = true;
         }
     }
 
-    void SignalRenderFlagsNegXY(Vector3 position)
+    void SignalRenderFlagsNegX(Vector3 position)
     {
         if (position.x < -0.5)
         {
             if (position.y > 0.5)
-                mbRenderFlagsNegXY[(int)Math.Round(Math.Abs(position.x)) - 1, 0, (int)Math.Round(position.y) - 1] = true;
+                mbRenderFlagsNegX[(int)Math.Round(Math.Abs(position.x)) - 1, 0, (int)Math.Round(position.y) - 1] = true;
             else if (position.y < -0.5)
-                mbRenderFlagsNegXY[(int)Math.Round(Math.Abs(position.x)) - 1, 1, (int)Math.Round(Math.Abs(position.y)) - 1] = true;
+                mbRenderFlagsNegX[(int)Math.Round(Math.Abs(position.x)) - 1, 1, (int)Math.Round(Math.Abs(position.y)) - 1] = true;
         }
     }
 
-    void RenderTextureTiles1D()
+    void RenderCenterTextureTile() // Render the render texture located at origin
+                                   // 原点に位置するレンダーテクスチャをレンダリングする
+    {
+        metaballRenderCS.SetTexture(0, "Result", metaballRenderTexture);
+        metaballRenderCS.SetVector("Offset", shaderOffset);
+        metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
+        materialPropertyBlock.SetTexture("_MainTex", metaballRenderTexture);
+        Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position));
+    }
+
+    void RenderTextureTiles1D() // Render the render textures along the x-axis and y-axis direction (excluding the origin)
+                                // x軸,y軸方向にあるレンダーテクスチャをレンダリングする（原点を除く）
     {
         for (int i = 0; i < 2; i++)
         {
@@ -309,8 +275,7 @@ public class Render : MonoBehaviour
             {
                 if (mbRenderFlagsX[i, j])
                 {
-                    RenderParams rp = new RenderParams(mbMaterialsX[i, j]);
-                    rp.layer = LayerMask.NameToLayer("MetaballRender");
+                    materialPropertyBlock.SetTexture("_MainTex", mbRenderTexturesX[i, j]);
                     metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesX[i, j]);
 
                     if (i == 0)
@@ -318,21 +283,20 @@ public class Render : MonoBehaviour
                         Vector3 tileOffset = Vector3.right * (j + 1);
                         metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                         metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                        Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                        Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                     }
                     else
                     {
                         Vector3 tileOffset = Vector3.left * (j + 1);
                         metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                         metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                        Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                        Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                     }
                 }
 
                 if (mbRenderFlagsY[i, j])
                 {
-                    RenderParams rp = new RenderParams(mbMaterialsY[i, j]);
-                    rp.layer = LayerMask.NameToLayer("MetaballRender");
+                    materialPropertyBlock.SetTexture("_MainTex", mbRenderTexturesY[i, j]);
                     metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesY[i, j]);
 
                     if (i == 0)
@@ -340,21 +304,22 @@ public class Render : MonoBehaviour
                         Vector3 tileOffset = Vector3.up * (j + 1);
                         metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                         metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                        Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                        Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                     }
                     else
                     {
                         Vector3 tileOffset = Vector3.down * (j + 1);
                         metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                         metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                        Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                        Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                     }
                 }
             }
         }
     }
 
-    void RenderTextureTiles2D()
+    void RenderTextureTiles2D() // Render the remaining textures
+                                // 他のレンダーテクスチャをレンダリングする
     {
         for (int i = 0; i < textureTileCoverage; i++)
         {
@@ -362,11 +327,10 @@ public class Render : MonoBehaviour
             {
                 for (int k = 0; k < textureTileCoverage; k++)
                 {
-                    if (mbRenderFlagsPosXY[i, j, k])
+                    if (mbRenderFlagsPosX[i, j, k])
                     {
-                        RenderParams rp = new RenderParams(mbMaterialsPosXY[i, j, k]);
-                        rp.layer = LayerMask.NameToLayer("MetaballRender");
-                        metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesPosXY[i, j, k]);
+                        materialPropertyBlock.SetTexture("_MainTex", mbRenderTexturesPosX[i, j, k]);
+                        metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesPosX[i, j, k]);
 
                         Vector3 tileOffset = Vector3.right * (i + 1);
                         if (j == 0)
@@ -374,22 +338,21 @@ public class Render : MonoBehaviour
                             tileOffset += Vector3.up * (k + 1);
                             metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                             metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                            Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                            Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                         }
                         else
                         {
                             tileOffset += Vector3.down * (k + 1);
                             metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                             metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                            Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                            Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                         }
                     }
 
-                    if (mbRenderFlagsNegXY[i, j, k])
+                    if (mbRenderFlagsNegX[i, j, k])
                     {
-                        RenderParams rp = new RenderParams(mbMaterialsNegXY[i, j, k]);
-                        rp.layer = LayerMask.NameToLayer("MetaballRender");
-                        metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesNegXY[i, j, k]);
+                        materialPropertyBlock.SetTexture("_MainTex", mbRenderTexturesNegX[i, j, k]);
+                        metaballRenderCS.SetTexture(0, "Result", mbRenderTexturesNegX[i, j, k]);
 
                         Vector3 tileOffset = Vector3.left * (i + 1);
                         if (j == 0)
@@ -397,14 +360,14 @@ public class Render : MonoBehaviour
                             tileOffset += Vector3.up * (k + 1);
                             metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                             metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                            Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                            Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                         }
                         else
                         {
                             tileOffset += Vector3.down * (k + 1);
                             metaballRenderCS.SetVector("Offset", shaderOffset - tileOffset);
                             metaballRenderCS.Dispatch(0, mbRenderTextureSize / 8, mbRenderTextureSize / 8, 1);
-                            Graphics.RenderMesh(rp, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
+                            Graphics.RenderMesh(renderParams, metaballCanvasMesh, 0, Matrix4x4.Translate(positionOffset + transform.position + tileOffset));
                         }
                     }
                 }

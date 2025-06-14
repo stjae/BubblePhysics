@@ -55,7 +55,6 @@ Shader "Custom/MetaballOverlay"
                     return float4(color.rgb, clamp(tex2D(_MaskBlurOutline, i.uv).r, 0.3, 0.5));
                 else
                     return tex2D(_BackgroundTexture, i.uv);
-                // clamp(tex2D(_MaskBlurOutline, i.uv).r, 0.4, 0.5)
             }
             ENDCG
         }
