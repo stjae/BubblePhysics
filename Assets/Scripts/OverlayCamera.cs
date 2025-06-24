@@ -83,9 +83,6 @@ public class OverlayCamera : MonoBehaviour
 
         metaballMaterial = new Material(metaballOverlayShader);
         metaballMaterial.SetTexture("_MainTex", metaballRT);
-        metaballMaterial.SetTexture("_Mask", metaballMaskRT);
-        metaballMaterial.SetTexture("_MaskBlurOutline", metaballMaskBlurOutlineRT);
-        metaballMaterial.SetTexture("_BackgroundTexture", backgroundRT);
 
         blurXMaterial = new Material(blurXShader);
         blurXMaterial.SetTexture("_MainTex", metaballMaskInverseRT);

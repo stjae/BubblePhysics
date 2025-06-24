@@ -50,11 +50,7 @@ Shader "Custom/MetaballOverlay"
             fixed4 frag(v2f i) : SV_Target
             {
                 float4 color = tex2D(_MainTex, i.uv);
-
-                if(tex2D(_MaskBlurOutline, i.uv).r > 0)
-                    return float4(color.rgb, clamp(tex2D(_MaskBlurOutline, i.uv).r, 0.3, 0.5));
-                else
-                    return tex2D(_BackgroundTexture, i.uv);
+                return color;
             }
             ENDCG
         }
