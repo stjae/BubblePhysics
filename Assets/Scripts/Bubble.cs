@@ -6,6 +6,8 @@ using UnityEngine;
 public class Bubble : MonoBehaviour
 {
     [SerializeField]
+    float speedLimit;
+    [SerializeField]
     [Tooltip("Point of bubble, updated by particle from the fluid simulation")]
     Point point; // 流体シミュレーションのパーティクルによって更新されるバブルのポイント
     [SerializeField]
@@ -93,15 +95,16 @@ public class Bubble : MonoBehaviour
     {
         foreach (int i in playerControlledCluster)
         {
-            fluidSim.particles[i].velocity += inputVector;
+            if (fluidSim.particles[i].velocity.magnitude < speedLimit)
+                fluidSim.particles[i].velocity += inputVector;
         }
     }
 
-    public void Jump(float force)
+    public void Jump(Vector2 inputVector)
     {
         foreach (int i in playerControlledCluster)
         {
-            fluidSim.particles[i].velocity.y += force;
+            fluidSim.particles[i].velocity += inputVector;
         }
     }
 
@@ -126,7 +129,7 @@ public class Bubble : MonoBehaviour
             onGroundAvgNormal /= onGroundCount;
         }
         int layerMask = (-1) - (1 << LayerMask.NameToLayer("Point"));
-        float length = ((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 4;
+        float length = ((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 8;
         RaycastHit2D hit = Physics2D.Raycast(transform.position, onGroundAvgPos - (Vector2)transform.position, length, layerMask);
         groundHit = Physics2D.Raycast(transform.position, -hit.normal, length, layerMask);
     }

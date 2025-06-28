@@ -47,6 +47,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ede41d64125e413fa339bf1df15a329, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  speedLimit: 0
   point: {fileID: 9165823829223697808, guid: b8e0623ea5e95437382653969385dde5, type: 3}
   pointRadius: 0.15
   maxPointCount: 170
@@ -93,15 +94,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d10116ad903b04849810f0adc133fe00, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  pointMesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
-  pointShader: {fileID: 4800000, guid: 28527aad5d286464db8abc4b78fc1850, type: 3}
-  metaballShader: {fileID: 4800000, guid: b15ee3bc1797d4391a80aa526400d416, type: 3}
   metaballRenderCS: {fileID: 7200000, guid: b918c9b569b6c4a49a503dc918f3e42a, type: 3}
   metaballThreshold: 0.01
-  renderPoint: 0
-  renderMetaball: 0
-  metaballRenderCamera: {fileID: 0}
-  pointRenderCamera: {fileID: 0}
 --- !u!114 &2757401040669036727
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -115,7 +109,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   restDensity: 30
-  stiffness: 0.13
+  stiffness: 0.11
   nearStiffness: 0.9
   springStiffness: 0.05
   yieldRatio: 0.25

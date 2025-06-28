@@ -1730,6 +1730,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2052336612}
     m_Modifications:
+    - target: {fileID: 5794614619717952679, guid: 3e649fc34673b475c900afbd4f2aa2ec, type: 3}
+      propertyPath: speedLimit
+      value: 0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 7209430208575293177, guid: 3e649fc34673b475c900afbd4f2aa2ec, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -2781,8 +2785,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2017f2c20bb1044cdad3cb7f7023d2ac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 4
-  jumpForce: 0.1
+  speed: 10
+  jumpForce: 0.01
+  maxJumpTime: 0.3
 --- !u!1 &2117661535
 GameObject:
   m_ObjectHideFlags: 0
