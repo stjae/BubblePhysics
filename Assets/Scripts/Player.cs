@@ -25,6 +25,9 @@ public class Player : MonoBehaviour
 
     void Update()
     {
+        Vector3 leftVec = Vector3.Cross(smoothNormal, Vector3.back);
+        Vector3 rightVec = Vector3.Cross(smoothNormal, Vector3.forward);
+
         if (Input.GetKey(KeyCode.E))
             bubble.Inflate();
         else if (Input.GetKey(KeyCode.Q))
@@ -44,9 +47,10 @@ public class Player : MonoBehaviour
         inputVector = new Vector3();
 
         if (Input.GetKey(KeyCode.A))
-            inputVector += Vector3.Cross(smoothNormal, Vector3.back) * FluidSim.deltaTime * speed;
+            inputVector += leftVec * FluidSim.deltaTime * speed;
+
         if (Input.GetKey(KeyCode.D))
-            inputVector += Vector3.Cross(smoothNormal, Vector3.forward) * FluidSim.deltaTime * speed;
+            inputVector += rightVec * FluidSim.deltaTime * speed;
 
         if (Input.GetKey(KeyCode.Space) && isAbleToJump)
         {

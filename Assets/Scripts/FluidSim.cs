@@ -41,14 +41,14 @@ public class FluidSim : MonoBehaviour
     float interactionRadius;
     [SerializeField]
     float dt;
-    public List<Particle> particles;
-    public List<Particle> mainParticles;
+    List<Particle> particles;
+    public int ParticleCount { get { return particles.Count; } }
 
     void Awake()
     {
         particles = new List<Particle>();
-        mainParticles = new List<Particle>();
     }
+
 
     public void Simulate()
     {
@@ -209,5 +209,25 @@ public class FluidSim : MonoBehaviour
                 }
             }
         });
+    }
+
+#nullable enable
+    public Particle? GetParticle(int index)
+    {
+        if (index > particles.Count - 1)
+            return null;
+        else
+            return particles[index];
+    }
+#nullable disable
+
+    public void AddParticle(Particle p)
+    {
+        particles.Add(p);
+    }
+
+    public void RemoveParticle(int i)
+    {
+        particles.RemoveAt(i);
     }
 }
