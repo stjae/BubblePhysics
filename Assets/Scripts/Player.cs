@@ -8,15 +8,15 @@ public class Player : MonoBehaviour
     float speed;
     [SerializeField]
     float jumpForce;
-    float currentJumpForce;
+    public float currentJumpForce;
     float smoothSpeed = 2f;
     Vector3 inputVector;
     Vector3 smoothNormal;
-    bool isAbleToJump;
-    bool isJumping = false;
-    float jumpTimeCounter;
+    public bool isAbleToJump;
+    public bool isJumping = false;
+    public float jumpTimeCounter;
     [SerializeField]
-    float maxJumpTime = 0.3f;
+    float maxJumpTime;
 
     void Start()
     {
@@ -52,30 +52,26 @@ public class Player : MonoBehaviour
         if (Input.GetKey(KeyCode.D))
             inputVector += rightVec * FluidSim.deltaTime * speed;
 
-        if (Input.GetKey(KeyCode.Space) && isAbleToJump)
+        if (isAbleToJump)
         {
-            isJumping = true;
-            currentJumpForce = jumpForce;
+            jumpTimeCounter = maxJumpTime;
         }
 
-        if (Input.GetKey(KeyCode.Space) && isJumping)
+        if (isJumping)
         {
-            if (jumpTimeCounter > 0)
-            {
-                jumpTimeCounter -= Time.deltaTime;
-            }
-            else
-            {
-                isJumping = false;
-                jumpTimeCounter = maxJumpTime;
-                currentJumpForce = 0;
-            }
+            jumpTimeCounter -= Time.deltaTime;
         }
 
-        if (Input.GetKeyUp(KeyCode.Space))
+        if (jumpTimeCounter <= 0 || Input.GetKeyUp(KeyCode.Space))
         {
             isJumping = false;
             currentJumpForce = 0;
+        }
+
+        if (Input.GetKey(KeyCode.Space) && jumpTimeCounter > 0 && isAbleToJump)
+        {
+            isJumping = true;
+            currentJumpForce = jumpForce;
         }
 
         if (bubble.transform.position.y < -10)

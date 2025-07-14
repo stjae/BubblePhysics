@@ -15,6 +15,7 @@ public class Particle
     public List<float?> springRestLengths;
     public bool onGround;
     public Vector3 onGroundNormal;
+    public float collisionForce;
 }
 public class FluidSim : MonoBehaviour
 {
@@ -59,7 +60,7 @@ public class FluidSim : MonoBehaviour
             particles[i].prevPosition = particles[i].position;
             particles[i].position += dt * particles[i].velocity;
         });
-        AdjustSprings();
+        // AdjustSprings();
         ApplySpringDisplacement();
         DoubleDensityRelaxation();
 

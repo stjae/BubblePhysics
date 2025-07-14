@@ -16,11 +16,13 @@ public class EyeAnimation : MonoBehaviour
     float eyeScale;
     [SerializeField]
     Vector2 offset;
-    float smoothTime = 0.1f;
     Vector3 velocity;
     Vector3 originalScale;
     Vector3 smoothNormal;
-    float smoothSpeed = 2f;
+    [SerializeField]
+    float positionSmoothTime;
+    [SerializeField]
+    float normalSmoothSpeed;
 
     void Start()
     {
@@ -32,7 +34,7 @@ public class EyeAnimation : MonoBehaviour
 
     void FixedUpdate()
     {
-        transform.position = Vector3.SmoothDamp(transform.position, target.transform.position, ref velocity, smoothTime);
+        transform.position = Vector3.SmoothDamp(transform.position, target.transform.position, ref velocity, positionSmoothTime);
     }
 
     void Update()
@@ -78,9 +80,9 @@ public class EyeAnimation : MonoBehaviour
                          // 傾斜が60度以下の地面にいるとき、目の向きをその傾斜に合わせる
     {
         if (Vector3.Angle(Vector3.up, bubble.groundHit.normal) <= 60 && bubble.groundHit)
-            smoothNormal = Vector3.Lerp(smoothNormal, bubble.onGroundAvgNormal, Time.deltaTime * smoothSpeed).normalized;
+            smoothNormal = Vector3.Lerp(smoothNormal, bubble.onGroundAvgNormal, Time.deltaTime * normalSmoothSpeed).normalized;
         else
-            smoothNormal = Vector3.Lerp(smoothNormal, Vector3.up, Time.deltaTime * smoothSpeed).normalized;
+            smoothNormal = Vector3.Lerp(smoothNormal, Vector3.up, Time.deltaTime * normalSmoothSpeed).normalized;
         transform.up = smoothNormal;
 
     }

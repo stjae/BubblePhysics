@@ -27,7 +27,7 @@ public class Bubble : MonoBehaviour
     FluidSim fluidSim;
     bool isInflating;
     bool isDeflating;
-    List<List<int>> clusters;
+    public List<List<int>> clusters;
     public List<int> playerControlledIndex { get; private set; }  // A cluster controlled by the player 
                                                                   // プレイヤーに制御されるクラスタ
     List<bool> visited;
@@ -131,8 +131,13 @@ public class Bubble : MonoBehaviour
             onGroundAvgPos /= onGroundCount;
             onGroundAvgNormal /= onGroundCount;
         }
-        int layerMask = (-1) - (1 << LayerMask.NameToLayer("Point"));
-        float length = ((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 8;
+        int excludedMask = 1 << LayerMask.NameToLayer("Point");
+        int layerMask = ~excludedMask;
+        float length = ((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 2;
+        // If no point in the player-controlled cluster hits the ground
+        // プレイヤーが操作するクラスターのいずれのPointも地面に接触していない場合
+        if (onGroundAvgPos.magnitude == 0)
+            length = 0;
         RaycastHit2D hit = Physics2D.Raycast(transform.position, onGroundAvgPos - (Vector2)transform.position, length, layerMask);
         groundHit = Physics2D.Raycast(transform.position, -hit.normal, length, layerMask);
     }
@@ -161,10 +166,13 @@ public class Bubble : MonoBehaviour
 
     IEnumerator DeflateCoroutine()
     {
-        int i = playerControlledIndex.Last();
-        Destroy(transform.GetChild(i).gameObject);
-        fluidSim.RemoveParticle(i);
-        playerControlledIndex.RemoveAt(playerControlledIndex.Count - 1);
+        if (playerControlledIndex.Count > 0)
+        {
+            int i = playerControlledIndex.Last();
+            Destroy(transform.GetChild(i).gameObject);
+            fluidSim.RemoveParticle(i);
+            playerControlledIndex.RemoveAt(playerControlledIndex.Count - 1);
+        }
 
         yield return new WaitForSeconds(deflationInterval);
         isDeflating = false;
@@ -247,4 +255,11 @@ public class Bubble : MonoBehaviour
         }
         return center /= Math.Max(cluster.Count, 1);
     }
+
+    // void OawGizmos()
+    // {
+    //     Gizmos.color = Color.red;
+
+    //     Gizmos.DrawLine(((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 8)       
+    // }
 }

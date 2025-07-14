@@ -3,16 +3,12 @@ using UnityEngine;
 public class Point : MonoBehaviour
 {
     public static float radius;
-    PhysicsMaterial2D pMaterial;
     FluidSim fluidSim;
-    public Particle particle;
 
     void Awake()
     {
         gameObject.layer = LayerMask.NameToLayer("Point");
         transform.GetComponent<CircleCollider2D>().radius = radius;
-        pMaterial = new PhysicsMaterial2D();
-        pMaterial.friction = 0;
         fluidSim = transform.parent.GetComponent<FluidSim>();
     }
 
@@ -55,6 +51,7 @@ public class Point : MonoBehaviour
             return;
 
         fluidSim.GetParticle(transform.GetSiblingIndex()).onGround = false;
+        fluidSim.GetParticle(transform.GetSiblingIndex()).collisionForce = 0.01f;
     }
 
     void OnCollisionStay2D(Collision2D collisionInfo)
@@ -64,10 +61,21 @@ public class Point : MonoBehaviour
 
         foreach (ContactPoint2D contact in collisionInfo.contacts)
         {
+            fluidSim.GetParticle(transform.GetSiblingIndex()).collisionForce += 0.02f;
             fluidSim.GetParticle(transform.GetSiblingIndex()).velocity = new Vector2();
-            fluidSim.GetParticle(transform.GetSiblingIndex()).velocity += contact.normal * 0.01f;
+            fluidSim.GetParticle(transform.GetSiblingIndex()).velocity += contact.normal * fluidSim.GetParticle(transform.GetSiblingIndex()).collisionForce;
             fluidSim.GetParticle(transform.GetSiblingIndex()).onGround = true;
             fluidSim.GetParticle(transform.GetSiblingIndex()).onGroundNormal = contact.normal;
         }
+    }
+
+    public Particle GetParticle()
+    {
+        return fluidSim.GetParticle(transform.GetSiblingIndex());
+    }
+
+    public int GetIndex()
+    {
+        return transform.GetSiblingIndex();
     }
 }
