@@ -7,29 +7,36 @@ RWTexture2D<float4> Result;
 float Threshold;
 float Resolution;
 float Radius;
+float MaxLifeTime;
 float4 Offset;
-float4 Positions[1000];
 int Count;
+
+StructuredBuffer<float4> PositionsBuffer;
+StructuredBuffer<float> LifeTimesBuffer;
 
 [numthreads(8, 8, 1)] void CSMain(uint3 id : SV_DispatchThreadID)
 {
     float2 texCoord = int2(id.x - Resolution / 2, id.y - Resolution / 2);
 
-    float3 col = float3(0, 0, 0);
+    float4 col = float4(0, 0, 0, 0);
     float infl = 0.0; // total influence
     for (int i = 0; i < Count; i++)
     {
-        float4 mb = (Positions[i] + Offset) * Resolution;
+        if(PositionsBuffer[i].w < 1)
+            continue;
+
+        float4 mb = (PositionsBuffer[i] + Offset) * Resolution;
         // influence from current metaball
         float currInfl = Radius * Radius * Resolution;
         currInfl /= (pow(abs(texCoord.x - mb.x), 2.0) + pow(abs(texCoord.y - mb.y), 2.0));
         infl += currInfl;
-        col += float3(0, 1, 0) * currInfl;
+        float lifeColor = LifeTimesBuffer[i] / MaxLifeTime;
+        col += float4(0, 1, 0, lifeColor) * currInfl;
     }
 
     float4 outColor = float4(0, 0, 0, 0);
     if (infl > Threshold)
-        outColor = float4(normalize(col), 0.7);
+        outColor = float4(normalize(col));
 
     Result[id.xy] = outColor;
 }

@@ -1,23 +1,29 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public class Bubble : MonoBehaviour
 {
+    public Vector3 Position { get; private set; }
     [SerializeField]
     float speedLimit;
     [SerializeField]
     [Tooltip("Point of bubble, updated by particle from the fluid simulation")]
     Point point; // 流体シミュレーションのパーティクルによって更新されるバブルのポイント
+    Point[] points;
     [SerializeField]
     float pointRadius;
     [SerializeField]
+    float maxPointLifeTime;
+    public float MaxPointLifeTime { get { return maxPointLifeTime; } private set { maxPointLifeTime = value; } }
+    [SerializeField]
     int maxPointCount;
-    public int MinPointCount { get { return minPointCount; } private set { minPointCount = value; } }
+    public int MaxPointCount { get { return maxPointCount; } private set { maxPointCount = value; } }
     [SerializeField]
     int minPointCount;
+    public int MinPointCount { get { return minPointCount; } private set { minPointCount = value; } }
+    public int ActivePointCount { get; private set; }
     [SerializeField]
     [Tooltip("Determine how fast the points increase")]
     float inflationInterval; // ポイントの増加速度を決定する
@@ -28,54 +34,79 @@ public class Bubble : MonoBehaviour
     bool isInflating;
     bool isDeflating;
     public List<List<int>> clusters;
-    public List<int> playerControlledIndex { get; private set; }  // A cluster controlled by the player 
-                                                                  // プレイヤーに制御されるクラスタ
+    public List<int> mainCluster { get; private set; }  // A cluster controlled by the player 
+                                                        // プレイヤーに制御されるクラスタ
+    int mainClusterIndex;
     List<bool> visited;
     [SerializeField]
     [Tooltip("The maximum distance between points within a cluster")]
     float neighborRadius; // クラスタ内のポイント間の最大距離
-    public RaycastHit2D groundHit { get; private set; }
-    Vector2 onGroundAvgPos;
-    public Vector3 onGroundAvgNormal { get; private set; }
+    public RaycastHit2D GroundHit { get; private set; }
+    public Vector3 GroundNormal { get; private set; }
+    Vector2 averageContactPoint;
 
     void Start()
     {
         fluidSim = GetComponent<FluidSim>();
-        playerControlledIndex = new List<int>();
+        points = new Point[MaxPointCount];
+        for (int i = 0; i < MaxPointCount; i++)
+        {
+            points[i] = Instantiate(point, transform, false);
+            points[i].gameObject.SetActive(false);
+        }
         StartCoroutine(InflateInitialCoroutine());
         clusters = new List<List<int>>();
         visited = new List<bool>();
+        mainCluster = new List<int>();
     }
 
     void Update()
     {
         Point.radius = pointRadius;
+
+        for (int i = 0; i < clusters.Count; i++)
+        {
+            for (int j = 0; j < clusters[i].Count; j++)
+            {
+                int k = clusters[i][j];
+                if (i == mainClusterIndex)
+                {
+                    points[k].lifeTime += Time.deltaTime;
+                    points[k].lifeTime = Math.Min(points[k].lifeTime, maxPointLifeTime);
+                }
+                else
+                {
+                    points[k].lifeTime -= Time.deltaTime;
+                }
+            }
+        }
     }
 
     void FixedUpdate()
     {
-        fluidSim.Simulate();
-        SetPlayerControlledCluster();
-        UpdatePosition();
-        CheckOnGround();
-    }
-
-    void UpdatePosition() // Set the Bubble object's position to the position of the player-controlled cluster 
-                          // プレイヤー制御のクラスタの位置にBubbleオブジェクトの位置を設定する
-    {
-        Vector2 center = new Vector2();
-        foreach (int i in playerControlledIndex)
+        ActivePointCount = 0;
+        foreach (Point p in points)
         {
-            if (fluidSim.GetParticle(i) != null)
-                center += fluidSim.GetParticle(i).position;
+            if (p.gameObject.activeSelf)
+            {
+                ActivePointCount++;
+            }
+            else
+            {
+                p.transform.position = Position;
+                p.GetParticle().localPosition = new Vector2();
+            }
         }
-        transform.position = center / Math.Max(playerControlledIndex.Count, 1);
+        fluidSim.Simulate();
+        SetMainCluster();
+        Position = GetClusterPos(mainCluster);
+        CheckOnGround();
     }
 
     public void Inflate() // Increase the number of points 
                           // ポイントの数を増やす
     {
-        if (isInflating || transform.childCount >= maxPointCount)
+        if (isInflating)
             return;
 
         isInflating = true;
@@ -85,7 +116,7 @@ public class Bubble : MonoBehaviour
     public void Deflate() // Decrease the number of points
                           // ポイントの数を減らす
     {
-        if (isDeflating || transform.childCount <= minPointCount)
+        if (isDeflating)
             return;
 
         isDeflating = true;
@@ -95,19 +126,18 @@ public class Bubble : MonoBehaviour
     public void Move(Vector2 inputVector) // Moves the particles of the player-controlled cluster according to keyboard input
                                           // プレイヤー制御のクラスタのパーティクルをキーボード入力に従って移動させる
     {
-        foreach (int i in playerControlledIndex)
+        foreach (int i in mainCluster)
         {
-            if (fluidSim.GetParticle(i) != null && fluidSim.GetParticle(i).velocity.magnitude < speedLimit)
-                fluidSim.GetParticle(i).velocity += inputVector;
+            if (fluidSim.particles[i].velocity.magnitude < speedLimit)
+                fluidSim.particles[i].velocity += inputVector;
         }
     }
 
     public void Jump(Vector2 inputVector)
     {
-        foreach (int i in playerControlledIndex)
+        foreach (int i in mainCluster)
         {
-            if (fluidSim.GetParticle(i) != null)
-                fluidSim.GetParticle(i).velocity += inputVector;
+            fluidSim.particles[i].velocity += inputVector;
         }
     }
 
@@ -115,50 +145,70 @@ public class Bubble : MonoBehaviour
                          // プレイヤー制御のクラスタが地面に接しているかを確認する
     {
         int onGroundCount = 0;
-        onGroundAvgPos = new Vector2();
-        onGroundAvgNormal = new Vector3();
-        foreach (int i in playerControlledIndex)
+        averageContactPoint = new Vector2();
+        GroundNormal = new Vector3();
+        foreach (int i in mainCluster)
         {
-            if (fluidSim.GetParticle(i) != null && fluidSim.GetParticle(i).onGround)
+            if (points[i].isOnGround)
             {
-                onGroundAvgPos += fluidSim.GetParticle(i).position;
-                onGroundAvgNormal += fluidSim.GetParticle(i).onGroundNormal;
+                averageContactPoint += fluidSim.particles[i].position;
+                GroundNormal += points[i].groundNormal;
                 onGroundCount++;
             }
         }
         if (onGroundCount > 0)
         {
-            onGroundAvgPos /= onGroundCount;
-            onGroundAvgNormal /= onGroundCount;
+            averageContactPoint /= onGroundCount;
+            GroundNormal /= onGroundCount;
         }
         int excludedMask = 1 << LayerMask.NameToLayer("Point");
         int layerMask = ~excludedMask;
-        float length = ((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 2;
+        float length = ((Vector2)Position - averageContactPoint).magnitude + pointRadius * 2;
         // If no point in the player-controlled cluster hits the ground
         // プレイヤーが操作するクラスターのいずれのPointも地面に接触していない場合
-        if (onGroundAvgPos.magnitude == 0)
+        if (averageContactPoint.magnitude == 0)
             length = 0;
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, onGroundAvgPos - (Vector2)transform.position, length, layerMask);
-        groundHit = Physics2D.Raycast(transform.position, -hit.normal, length, layerMask);
+        RaycastHit2D hit = Physics2D.Raycast(Position, averageContactPoint - (Vector2)Position, length, layerMask);
+        GroundHit = Physics2D.Raycast(Position, -hit.normal, length, layerMask);
     }
 
     IEnumerator InflateInitialCoroutine() // Increase the number of points to the value of minPointCount
                                           // ポイントの数を minPointCount まで増やす
     {
-        while (transform.childCount < minPointCount)
+        while (ActivePointCount < MinPointCount)
         {
-            Inflate();
+            for (int i = 0; i < MaxPointCount; i++)
+            {
+                if (!fluidSim.particles[i].isActive)
+                {
+                    Vector3 randomPos = Position + new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
+                    points[i].gameObject.SetActive(true);
+                    points[i].lifeTime = maxPointLifeTime;
+                    fluidSim.particles[i].position = randomPos;
+                    fluidSim.particles[i].isActive = true;
+                    break;
+                }
+            }
             yield return new WaitForSeconds(inflationInterval);
         }
     }
 
     IEnumerator InflateCoroutine()
     {
-        Point pointInstance = Instantiate(point, transform, false);
-        pointInstance.transform.position += new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
-        List<float?> springs = new List<float?>();
-        fluidSim.AddParticle(new Particle() { position = pointInstance.transform.position, springRestLengths = springs });
-        playerControlledIndex.Add(fluidSim.ParticleCount - 1);
+        for (int i = 0; i < fluidSim.particles.Length; i++)
+        {
+            if (!fluidSim.particles[i].isActive)
+            {
+                Vector3 randomPos = Position + new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
+                points[i].gameObject.SetActive(true);
+                points[i].lifeTime = maxPointLifeTime;
+                fluidSim.particles[i].position = randomPos;
+                fluidSim.particles[i].prevPosition = randomPos;
+                fluidSim.particles[i].velocity = transform.GetComponent<Rigidbody2D>().linearVelocity;
+                fluidSim.particles[i].isActive = true;
+                break;
+            }
+        }
 
         yield return new WaitForSeconds(inflationInterval);
         isInflating = false;
@@ -166,31 +216,33 @@ public class Bubble : MonoBehaviour
 
     IEnumerator DeflateCoroutine()
     {
-        if (playerControlledIndex.Count > 0)
+        for (int i = 0; i < fluidSim.particles.Length; i++)
         {
-            int i = playerControlledIndex.Last();
-            Destroy(transform.GetChild(i).gameObject);
-            fluidSim.RemoveParticle(i);
-            playerControlledIndex.RemoveAt(playerControlledIndex.Count - 1);
+            if (fluidSim.particles[i].isActive)
+            {
+                fluidSim.particles[i].isActive = false;
+                transform.GetChild(i).gameObject.SetActive(false);
+                break;
+            }
         }
 
         yield return new WaitForSeconds(deflationInterval);
         isDeflating = false;
     }
 
-    void SetPlayerControlledCluster() // Find all clusters in the simulation and set the closest one as the player-controlled cluster
-                                      // シミュレーション内のすべてのクラスタを検出し、最も近いクラスタをプレイヤー制御クラスタとして設定する
+    void SetMainCluster() // Find all clusters in the simulation and set the closest one as the player-controlled cluster
+                          // シミュレーション内のすべてのクラスタを検出し、最も近いクラスタをプレイヤー制御クラスタとして設定する
     {
         visited.Clear();
         clusters.Clear();
-        visited.Capacity = fluidSim.ParticleCount;
+        visited.Capacity = fluidSim.particles.Length;
 
-        for (int i = 0; i < fluidSim.ParticleCount; i++)
+        for (int i = 0; i < fluidSim.particles.Length; i++)
             visited.Add(false);
 
-        for (int i = 0; i < fluidSim.ParticleCount; ++i)
+        for (int i = 0; i < fluidSim.particles.Length; i++)
         {
-            if (visited[i]) continue;
+            if (visited[i] || !fluidSim.particles[i].isActive) continue;
 
             Queue<int> q = new Queue<int>();
             List<int> cluster = new List<int>();
@@ -206,38 +258,46 @@ public class Bubble : MonoBehaviour
                 List<int> neighbors = GetNeighbors(current);
                 foreach (int neighbor in neighbors)
                 {
-                    if (!visited[neighbor])
-                    {
-                        visited[neighbor] = true;
-                        q.Enqueue(neighbor);
-                    }
+                    if (visited[neighbor]) continue;
+
+                    visited[neighbor] = true;
+                    q.Enqueue(neighbor);
                 }
             }
             clusters.Add(cluster);
         }
 
-        playerControlledIndex.Clear();
-        playerControlledIndex = clusters[0];
-        float shortestDist = (GetClusterPos(clusters[0]) - (Vector2)transform.position).magnitude;
-
-        foreach (List<int> cluster in clusters)
+        if (clusters.Count < 1)
         {
-            if (shortestDist > (GetClusterPos(cluster) - (Vector2)transform.position).magnitude)
+            return;
+        }
+
+        mainCluster.Clear();
+        mainCluster = clusters[0];
+        mainClusterIndex = 0;
+        float shortestDist = (GetClusterPos(clusters[0]) - (Vector2)Position).magnitude; // distance from the current bubble to the closest cluster
+
+        for (int i = 1; i < clusters.Count; i++)
+        {
+            float dist = (GetClusterPos(clusters[i]) - (Vector2)Position).magnitude;
+            if (shortestDist > dist)
             {
-                shortestDist = (GetClusterPos(cluster) - (Vector2)transform.position).magnitude;
-                playerControlledIndex = cluster;
+                shortestDist = dist;
+                mainCluster = clusters[i];
+                mainClusterIndex = i;
             }
         }
     }
+
     List<int> GetNeighbors(int i) // Get all neighboring particles connected to the particle index i 
                                   // インデックス i のパーティクルに接続されているすべての隣接パーティクルを取得する
     {
         List<int> neighbors = new List<int>();
-        for (int j = 0; j < fluidSim.ParticleCount; ++j)
+        for (int j = 0; j < fluidSim.particles.Length; j++)
         {
-            if (i == j) continue;
+            if (i == j || !fluidSim.particles[j].isActive) continue;
 
-            float dist = (fluidSim.GetParticle(i).position - fluidSim.GetParticle(j).position).magnitude;
+            float dist = (fluidSim.particles[i].position - fluidSim.particles[j].position).magnitude;
             if (dist < neighborRadius)
             {
                 neighbors.Add(j);
@@ -251,15 +311,25 @@ public class Bubble : MonoBehaviour
         Vector2 center = new Vector2();
         for (int i = 0; i < cluster.Count; i++)
         {
-            center += fluidSim.GetParticle(cluster[i]).position;
+            center += fluidSim.particles[cluster[i]].position;
         }
-        return center /= Math.Max(cluster.Count, 1);
+        return center / Math.Max(cluster.Count, 1);
     }
 
-    // void OawGizmos()
-    // {
-    //     Gizmos.color = Color.red;
+    void OnDrawGizmos()
+    {
+        // Gizmos.color = Color.red;
+        // for (int i = 0; i < mainCluster.Count; i++)
+        // {
+        //     Gizmos.DrawSphere(fluidSim.particles[mainCluster[i]].position, 0.1f);
+        // }
 
-    //     Gizmos.DrawLine(((Vector2)transform.position - onGroundAvgPos).magnitude + pointRadius * 8)       
-    // }
+        // Vector2 center = new Vector2();
+        // Gizmos.color = Color.blue;
+        // for (int i = 0; i < mainCluster.Count; i++)
+        // {
+        //     center += fluidSim.particles[mainCluster[i]].position;
+        // }
+        // Gizmos.DrawSphere(center / Math.Max(mainCluster.Count, 1), 0.1f);
+    }
 }

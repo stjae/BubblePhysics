@@ -33,10 +33,10 @@ public class Player : MonoBehaviour
         else if (Input.GetKey(KeyCode.Q))
             bubble.Deflate();
 
-        if (Vector3.Angle(Vector3.up, bubble.groundHit.normal) <= 60 && bubble.groundHit)
+        if (Vector3.Angle(Vector3.up, bubble.GroundHit.normal) <= 60 && bubble.GroundHit)
         {
             isAbleToJump = true;
-            smoothNormal = Vector3.Lerp(smoothNormal, bubble.onGroundAvgNormal, Time.deltaTime * smoothSpeed).normalized;
+            smoothNormal = Vector3.Lerp(smoothNormal, bubble.GroundNormal, Time.deltaTime * smoothSpeed).normalized;
         }
         else
         {

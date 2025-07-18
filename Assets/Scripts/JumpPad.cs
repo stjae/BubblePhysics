@@ -16,7 +16,6 @@ public class JumpPad : MonoBehaviour
     float moveDuration = 0.1f;
 
     Rigidbody2D rb;
-    // HashSet<int> contactedClusters;
     HashSet<int> contactedParticles;
 
     void Start()
@@ -50,10 +49,7 @@ public class JumpPad : MonoBehaviour
     void OnCollisionExit2D(Collision2D collisionInfo)
     {
         int index = collisionInfo.collider.GetComponent<Point>().GetIndex();
-        if (contactedParticles.Contains(index))
-        {
-            contactedParticles.Remove(index);
-        }
+        contactedParticles.Remove(index);
     }
 
     IEnumerator MoveAndBounceLoop()
@@ -87,13 +83,16 @@ public class JumpPad : MonoBehaviour
 
     void Bounce()
     {
-        foreach (List<int> cluster in bubble.clusters)
+        if (bubble)
         {
-            foreach (int particleIndex in cluster)
+            foreach (List<int> cluster in bubble.clusters)
             {
-                if (contactedParticles.Contains(particleIndex))
+                foreach (int i in cluster)
                 {
-                    fluidSim.GetParticle(particleIndex).velocity = (Vector2)transform.up * jumpPower;
+                    if (contactedParticles.Contains(i))
+                    {
+                        fluidSim.particles[i].velocity = (Vector2)transform.up * jumpPower;
+                    }
                 }
             }
         }

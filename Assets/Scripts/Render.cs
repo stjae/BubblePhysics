@@ -4,13 +4,18 @@ using UnityEngine;
 public class Render : MonoBehaviour
 {
     Bubble bubble;
+    FluidSim fluidSim;
+    Point[] points;
     [SerializeField]
     ComputeShader metaballRenderCS;
     [SerializeField]
     float metaballThreshold;
     Matrix4x4[] objectToWorld;
-    Vector4[] objectWorldPositions;
-    Vector4[] objectLocalPositions;
+    Vector4[] worldPositions;
+    Vector4[] localPositions;
+    float[] pointLifeTimes;
+    ComputeBuffer localPositionsBuffer;
+    ComputeBuffer pointLifeTimesBuffer;
     Mesh metaballCanvasMesh; // Quad used to display the metaball render texture 
                              // メタボールレンダーテクスチャを適用する四角形メッシュ
     Material metaballCanvasMeshMaterial;
@@ -51,6 +56,15 @@ public class Render : MonoBehaviour
     void Start()
     {
         bubble = transform.GetComponent<Bubble>();
+        fluidSim = transform.GetComponent<FluidSim>();
+        points = new Point[transform.childCount];
+        for (int i = 0; i < transform.childCount; i++)
+        {
+            points[i] = transform.GetChild(i).GetComponent<Point>();
+        }
+        pointLifeTimes = new float[transform.childCount];
+        localPositionsBuffer = new ComputeBuffer(transform.childCount, sizeof(float) * 4, ComputeBufferType.Default);
+        pointLifeTimesBuffer = new ComputeBuffer(transform.childCount, sizeof(float), ComputeBufferType.Default);
 
         CreateCanvasMesh();
 
@@ -69,9 +83,9 @@ public class Render : MonoBehaviour
 
     void Update()
     {
-        objectToWorld = new Matrix4x4[transform.childCount];
-        objectWorldPositions = new Vector4[1000];
-        objectLocalPositions = new Vector4[1000];
+        objectToWorld = new Matrix4x4[bubble.MaxPointCount];
+        worldPositions = new Vector4[bubble.MaxPointCount];
+        localPositions = new Vector4[bubble.MaxPointCount];
 
         mbRenderFlagsX = new bool[2, textureTileCoverage];
         mbRenderFlagsY = new bool[2, textureTileCoverage];
@@ -79,8 +93,8 @@ public class Render : MonoBehaviour
         mbRenderFlagsPosX = new bool[textureTileCoverage, 2, textureTileCoverage];
         mbRenderFlagsNegX = new bool[textureTileCoverage, 2, textureTileCoverage];
 
-        shaderOffset = transform.position - bubble.transform.position;
-        positionOffset = bubble.transform.position - transform.position;
+        shaderOffset = transform.position - bubble.Position;
+        positionOffset = bubble.Position - transform.position;
 
         Vector3[] pointOffset = new Vector3[9]; // Since a point is too small, an offset is used to expand the area around the point 
                                                 // ポイントは非常に小さいため、オフセットを使用してポイント周辺の範囲も有効として扱う
@@ -94,14 +108,19 @@ public class Render : MonoBehaviour
         pointOffset[7] = 3 * Point.radius * Vector3.left;
         pointOffset[8] = 3 * Point.radius * (Vector3.left + Vector3.up).normalized;
 
-        for (int i = 0; i < transform.childCount; i++)
+        for (int i = 0; i < fluidSim.particles.Length; i++)
         {
-            Transform child = transform.GetChild(i);
-            objectToWorld[i] = Matrix4x4.Translate(child.position);
-            objectWorldPositions[i] = child.position;
-            objectLocalPositions[i] = child.localPosition;
+            if (!fluidSim.particles[i].isActive)
+                continue;
 
-            Vector3 shaderPosition = shaderOffset + child.localPosition;
+            Particle particle = fluidSim.particles[i];
+            objectToWorld[i] = Matrix4x4.Translate(particle.position);
+            worldPositions[i] = particle.position;
+            localPositions[i] = particle.localPosition;
+            localPositions[i].w = 1; // use W coord for active particle flag
+            pointLifeTimes[i] = points[i].lifeTime;
+
+            Vector3 shaderPosition = shaderOffset + (Vector3)particle.localPosition;
 
             for (int j = 0; j < 9; j++)
             {
@@ -117,17 +136,22 @@ public class Render : MonoBehaviour
             }
         }
 
+        localPositionsBuffer.SetData(localPositions);
+        pointLifeTimesBuffer.SetData(pointLifeTimes);
+
+        metaballRenderCS.SetFloat("Threshold", metaballThreshold);
+        metaballRenderCS.SetFloat("Resolution", mbRenderTextureSize);
+        metaballRenderCS.SetFloat("Radius", Point.radius);
+        metaballRenderCS.SetFloat("MaxLifeTime", bubble.MaxPointLifeTime);
+        metaballRenderCS.SetInt("Count", bubble.MaxPointCount);
+        metaballRenderCS.SetBuffer(0, "PositionsBuffer", localPositionsBuffer);
+        metaballRenderCS.SetBuffer(0, "LifeTimesBuffer", pointLifeTimesBuffer);
+
         RenderMetaballTiles();
     }
 
     void RenderMetaballTiles()
     {
-        metaballRenderCS.SetFloat("Threshold", metaballThreshold);
-        metaballRenderCS.SetFloat("Resolution", mbRenderTextureSize);
-        metaballRenderCS.SetFloat("Radius", Point.radius);
-        metaballRenderCS.SetInt("Count", transform.childCount);
-        metaballRenderCS.SetVectorArray("Positions", objectLocalPositions);
-
         RenderCenterTextureTile();
         RenderTextureTiles1D();
         RenderTextureTiles2D();
@@ -373,5 +397,12 @@ public class Render : MonoBehaviour
                 }
             }
         }
+    }
+
+    void OnDestroy()
+    {
+        if (localPositionsBuffer != null) localPositionsBuffer.Release();
+        if (pointLifeTimesBuffer != null) pointLifeTimesBuffer.Release();
+
     }
 }

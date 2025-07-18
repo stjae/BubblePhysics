@@ -26,15 +26,15 @@ public class EyeAnimation : MonoBehaviour
 
     void Start()
     {
-        transform.position = target.transform.position;
         bubble = target.transform.GetComponent<Bubble>();
+        transform.position = bubble.Position;
         smoothNormal = Vector3.up;
         StartCoroutine(BlinkRoutine());
     }
 
     void FixedUpdate()
     {
-        transform.position = Vector3.SmoothDamp(transform.position, target.transform.position, ref velocity, positionSmoothTime);
+        transform.position = Vector3.SmoothDamp(transform.position, bubble.Position, ref velocity, positionSmoothTime);
     }
 
     void Update()
@@ -79,8 +79,8 @@ public class EyeAnimation : MonoBehaviour
     void AlignEyeAngle() // Make the eye align with the slope when on ground with an inclination of 60 degrees or less
                          // 傾斜が60度以下の地面にいるとき、目の向きをその傾斜に合わせる
     {
-        if (Vector3.Angle(Vector3.up, bubble.groundHit.normal) <= 60 && bubble.groundHit)
-            smoothNormal = Vector3.Lerp(smoothNormal, bubble.onGroundAvgNormal, Time.deltaTime * normalSmoothSpeed).normalized;
+        if (Vector3.Angle(Vector3.up, bubble.GroundHit.normal) <= 60 && bubble.GroundHit)
+            smoothNormal = Vector3.Lerp(smoothNormal, bubble.GroundNormal, Time.deltaTime * normalSmoothSpeed).normalized;
         else
             smoothNormal = Vector3.Lerp(smoothNormal, Vector3.up, Time.deltaTime * normalSmoothSpeed).normalized;
         transform.up = smoothNormal;
@@ -89,7 +89,7 @@ public class EyeAnimation : MonoBehaviour
 
     void AdjustEyeDirection()
     {
-        float scale = (float)bubble.playerControlledIndex.Count / bubble.MinPointCount;
+        float scale = (float)bubble.mainCluster.Count / bubble.MinPointCount;
         transform.localScale = direction * (float)Math.Sqrt(scale);
         if (Input.GetKeyDown(KeyCode.A))
             direction = new Vector3(1, 1, 1);
