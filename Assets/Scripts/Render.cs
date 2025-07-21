@@ -8,8 +8,7 @@ public class Render : MonoBehaviour
     Point[] points;
     [SerializeField]
     ComputeShader metaballRenderCS;
-    [SerializeField]
-    float metaballThreshold;
+    public float metaballThreshold;
     Matrix4x4[] objectToWorld;
     Vector4[] worldPositions;
     Vector4[] localPositions;
@@ -49,7 +48,7 @@ public class Render : MonoBehaviour
                                 // 配列内でtrueの値を持つ位置がレンダリングされ、それ以外の場所は無視されます。
     RenderParams renderParams;
     MaterialPropertyBlock materialPropertyBlock;
-    static public int textureTileCoverage = 10;
+    static public int textureTileCoverage = 50;
     Vector3 shaderOffset;
     Vector3 positionOffset;
 
@@ -93,8 +92,8 @@ public class Render : MonoBehaviour
         mbRenderFlagsPosX = new bool[textureTileCoverage, 2, textureTileCoverage];
         mbRenderFlagsNegX = new bool[textureTileCoverage, 2, textureTileCoverage];
 
-        shaderOffset = transform.position - bubble.Position;
-        positionOffset = bubble.Position - transform.position;
+        shaderOffset = transform.position - bubble.CenterPos;
+        positionOffset = bubble.CenterPos - transform.position;
 
         Vector3[] pointOffset = new Vector3[9]; // Since a point is too small, an offset is used to expand the area around the point 
                                                 // ポイントは非常に小さいため、オフセットを使用してポイント周辺の範囲も有効として扱う

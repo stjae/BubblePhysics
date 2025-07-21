@@ -31,7 +31,7 @@ StructuredBuffer<float> LifeTimesBuffer;
         currInfl /= (pow(abs(texCoord.x - mb.x), 2.0) + pow(abs(texCoord.y - mb.y), 2.0));
         infl += currInfl;
         float lifeColor = LifeTimesBuffer[i] / MaxLifeTime;
-        col += float4(0, 1, 0, lifeColor) * currInfl;
+        col += float4(0, 1, 0, max(0.5, lifeColor)) * currInfl;
     }
 
     float4 outColor = float4(0, 0, 0, 0);

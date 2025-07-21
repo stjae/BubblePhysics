@@ -27,14 +27,14 @@ public class EyeAnimation : MonoBehaviour
     void Start()
     {
         bubble = target.transform.GetComponent<Bubble>();
-        transform.position = bubble.Position;
+        transform.position = bubble.MainClusterPos;
         smoothNormal = Vector3.up;
         StartCoroutine(BlinkRoutine());
     }
 
     void FixedUpdate()
     {
-        transform.position = Vector3.SmoothDamp(transform.position, bubble.Position, ref velocity, positionSmoothTime);
+        transform.position = Vector3.SmoothDamp(transform.position, bubble.MainClusterPos, ref velocity, positionSmoothTime);
     }
 
     void Update()

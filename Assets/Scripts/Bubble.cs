@@ -5,13 +5,13 @@ using UnityEngine;
 
 public class Bubble : MonoBehaviour
 {
-    public Vector3 Position { get; private set; }
+    public Vector3 CenterPos { get; private set; }
     [SerializeField]
     float speedLimit;
     [SerializeField]
     [Tooltip("Point of bubble, updated by particle from the fluid simulation")]
     Point point; // 流体シミュレーションのパーティクルによって更新されるバブルのポイント
-    Point[] points;
+    public Point[] points;
     [SerializeField]
     float pointRadius;
     [SerializeField]
@@ -31,11 +31,13 @@ public class Bubble : MonoBehaviour
     [Tooltip("Determine how fast the points decrease")]
     float deflationInterval; // ポイントの減少速度を決定する
     FluidSim fluidSim;
+    Render render;
     bool isInflating;
     bool isDeflating;
     public List<List<int>> clusters;
     public List<int> mainCluster { get; private set; }  // A cluster controlled by the player 
                                                         // プレイヤーに制御されるクラスタ
+    public Vector3 MainClusterPos { get; private set; }
     int mainClusterIndex;
     List<bool> visited;
     [SerializeField]
@@ -45,10 +47,12 @@ public class Bubble : MonoBehaviour
     public Vector3 GroundNormal { get; private set; }
     Vector2 averageContactPoint;
 
-    void Start()
+    void Awake()
     {
         fluidSim = GetComponent<FluidSim>();
+        render = GetComponent<Render>();
         points = new Point[MaxPointCount];
+        MainClusterPos = transform.parent.position;
         for (int i = 0; i < MaxPointCount; i++)
         {
             points[i] = Instantiate(point, transform, false);
@@ -62,7 +66,15 @@ public class Bubble : MonoBehaviour
 
     void Update()
     {
+        // float ratio = (float)ActivePointCount / minPointCount;
+        // float currentRadius = pointRadius * ratio;
         Point.radius = pointRadius;
+
+        // float minThreshold = 0.01f;
+        // float maxThreshold = 0.03f;
+        // float t = Mathf.Clamp01(ratio - 1f);
+        // float currentThreshold = Mathf.Lerp(minThreshold, maxThreshold, t);
+        // render.metaballThreshold = currentThreshold;
 
         for (int i = 0; i < clusters.Count; i++)
         {
@@ -93,14 +105,36 @@ public class Bubble : MonoBehaviour
             }
             else
             {
-                p.transform.position = Position;
-                p.GetParticle().localPosition = new Vector2();
+                p.transform.position = MainClusterPos;
             }
         }
         fluidSim.Simulate();
         SetMainCluster();
-        Position = GetClusterPos(mainCluster);
+        UpdatePosition();
         CheckOnGround();
+    }
+
+    void UpdatePosition()
+    {
+        MainClusterPos = GetClusterPos(mainCluster);
+        CenterPos = new Vector3();
+        foreach (List<int> cluster in clusters)
+        {
+            Vector2 clusterCenter = new Vector2();
+            foreach (int i in cluster)
+            {
+                clusterCenter += fluidSim.particles[i].position;
+            }
+            clusterCenter /= cluster.Count;
+            CenterPos += (Vector3)clusterCenter;
+        }
+        CenterPos /= clusters.Count;
+
+        // for (int i = 0; i < transform.childCount; i++)
+        // {
+        //     CenterPos += transform.GetChild(i).position;
+        // }
+        // CenterPos /= transform.childCount;
     }
 
     public void Inflate() // Increase the number of points 
@@ -126,18 +160,29 @@ public class Bubble : MonoBehaviour
     public void Move(Vector2 inputVector) // Moves the particles of the player-controlled cluster according to keyboard input
                                           // プレイヤー制御のクラスタのパーティクルをキーボード入力に従って移動させる
     {
+        float raw = (float)MinPointCount / mainCluster.Count;
+        float exponent = 0.7f;      // 0 < exponent < 1 이면 낙폭 완화
+        float force = Mathf.Pow(raw, exponent);
+        force = Mathf.Min(1.2f, force);
+
         foreach (int i in mainCluster)
         {
             if (fluidSim.particles[i].velocity.magnitude < speedLimit)
-                fluidSim.particles[i].velocity += inputVector;
+                fluidSim.particles[i].velocity += inputVector * force;
         }
     }
 
     public void Jump(Vector2 inputVector)
     {
+        float raw = (float)MinPointCount / mainCluster.Count;
+        float exponent = 0.7f;      // 0 < exponent < 1 이면 낙폭 완화
+        float force = Mathf.Pow(raw, exponent);
+        force = Mathf.Min(1.2f, force);
+
         foreach (int i in mainCluster)
         {
-            fluidSim.particles[i].velocity += inputVector;
+            fluidSim.particles[i].velocity += inputVector * force;
+            // fluidSim.particles[i].velocity += inputVector;
         }
     }
 
@@ -163,13 +208,14 @@ public class Bubble : MonoBehaviour
         }
         int excludedMask = 1 << LayerMask.NameToLayer("Point");
         int layerMask = ~excludedMask;
-        float length = ((Vector2)Position - averageContactPoint).magnitude + pointRadius * 2;
+        float length = ((Vector2)MainClusterPos - averageContactPoint).magnitude + pointRadius * 8f;
         // If no point in the player-controlled cluster hits the ground
         // プレイヤーが操作するクラスターのいずれのPointも地面に接触していない場合
         if (averageContactPoint.magnitude == 0)
+        {
             length = 0;
-        RaycastHit2D hit = Physics2D.Raycast(Position, averageContactPoint - (Vector2)Position, length, layerMask);
-        GroundHit = Physics2D.Raycast(Position, -hit.normal, length, layerMask);
+        }
+        GroundHit = Physics2D.Raycast(MainClusterPos, -GroundNormal, length, layerMask);
     }
 
     IEnumerator InflateInitialCoroutine() // Increase the number of points to the value of minPointCount
@@ -181,10 +227,12 @@ public class Bubble : MonoBehaviour
             {
                 if (!fluidSim.particles[i].isActive)
                 {
-                    Vector3 randomPos = Position + new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
+                    Vector3 randomPos = MainClusterPos + new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
                     points[i].gameObject.SetActive(true);
                     points[i].lifeTime = maxPointLifeTime;
                     fluidSim.particles[i].position = randomPos;
+                    fluidSim.particles[i].localPosition = fluidSim.particles[i].position - (Vector2)transform.position;
+                    fluidSim.particles[i].prevPosition = randomPos;
                     fluidSim.particles[i].isActive = true;
                     break;
                 }
@@ -199,10 +247,11 @@ public class Bubble : MonoBehaviour
         {
             if (!fluidSim.particles[i].isActive)
             {
-                Vector3 randomPos = Position + new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
+                Vector3 randomPos = MainClusterPos + new Vector3(UnityEngine.Random.Range(-0.5f, 0.5f), UnityEngine.Random.Range(-0.5f, 0.5f));
                 points[i].gameObject.SetActive(true);
                 points[i].lifeTime = maxPointLifeTime;
                 fluidSim.particles[i].position = randomPos;
+                fluidSim.particles[i].localPosition = fluidSim.particles[i].position - (Vector2)transform.position;
                 fluidSim.particles[i].prevPosition = randomPos;
                 fluidSim.particles[i].velocity = transform.GetComponent<Rigidbody2D>().linearVelocity;
                 fluidSim.particles[i].isActive = true;
@@ -216,14 +265,12 @@ public class Bubble : MonoBehaviour
 
     IEnumerator DeflateCoroutine()
     {
-        for (int i = 0; i < fluidSim.particles.Length; i++)
+        foreach (int i in mainCluster)
         {
-            if (fluidSim.particles[i].isActive)
-            {
-                fluidSim.particles[i].isActive = false;
-                transform.GetChild(i).gameObject.SetActive(false);
-                break;
-            }
+            fluidSim.particles[i].isActive = false;
+            transform.GetChild(i).gameObject.SetActive(false);
+
+            break;
         }
 
         yield return new WaitForSeconds(deflationInterval);
@@ -275,11 +322,11 @@ public class Bubble : MonoBehaviour
         mainCluster.Clear();
         mainCluster = clusters[0];
         mainClusterIndex = 0;
-        float shortestDist = (GetClusterPos(clusters[0]) - (Vector2)Position).magnitude; // distance from the current bubble to the closest cluster
+        float shortestDist = (GetClusterPos(clusters[0]) - (Vector2)MainClusterPos).magnitude; // distance from the current bubble to the closest cluster
 
         for (int i = 1; i < clusters.Count; i++)
         {
-            float dist = (GetClusterPos(clusters[i]) - (Vector2)Position).magnitude;
+            float dist = (GetClusterPos(clusters[i]) - (Vector2)MainClusterPos).magnitude;
             if (shortestDist > dist)
             {
                 shortestDist = dist;
@@ -318,18 +365,9 @@ public class Bubble : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        // Gizmos.color = Color.red;
-        // for (int i = 0; i < mainCluster.Count; i++)
-        // {
-        //     Gizmos.DrawSphere(fluidSim.particles[mainCluster[i]].position, 0.1f);
-        // }
-
-        // Vector2 center = new Vector2();
-        // Gizmos.color = Color.blue;
-        // for (int i = 0; i < mainCluster.Count; i++)
-        // {
-        //     center += fluidSim.particles[mainCluster[i]].position;
-        // }
-        // Gizmos.DrawSphere(center / Math.Max(mainCluster.Count, 1), 0.1f);
+        Gizmos.color = Color.red;
+        // float length = ((Vector2)MainClusterPos - averageContactPoint).magnitude + pointRadius * 4f;
+        // Gizmos.DrawLine(MainClusterPos, (MainClusterPos - (Vector3)GroundHit.point).normalized * length);
+        Gizmos.DrawLine(MainClusterPos, MainClusterPos - GroundNormal);
     }
 }
