@@ -12,8 +12,7 @@ public class Bubble : MonoBehaviour
     [Tooltip("Point of bubble, updated by particle from the fluid simulation")]
     Point point; // 流体シミュレーションのパーティクルによって更新されるバブルのポイント
     public Point[] points;
-    [SerializeField]
-    float pointRadius;
+    public float pointRadius;
     [SerializeField]
     float maxPointLifeTime;
     public float MaxPointLifeTime { get { return maxPointLifeTime; } private set { maxPointLifeTime = value; } }
@@ -57,6 +56,7 @@ public class Bubble : MonoBehaviour
         {
             points[i] = Instantiate(point, transform, false);
             points[i].gameObject.SetActive(false);
+            points[i].radius = pointRadius;
         }
         StartCoroutine(InflateInitialCoroutine());
         clusters = new List<List<int>>();
@@ -66,16 +66,6 @@ public class Bubble : MonoBehaviour
 
     void Update()
     {
-        // float ratio = (float)ActivePointCount / minPointCount;
-        // float currentRadius = pointRadius * ratio;
-        Point.radius = pointRadius;
-
-        // float minThreshold = 0.01f;
-        // float maxThreshold = 0.03f;
-        // float t = Mathf.Clamp01(ratio - 1f);
-        // float currentThreshold = Mathf.Lerp(minThreshold, maxThreshold, t);
-        // render.metaballThreshold = currentThreshold;
-
         for (int i = 0; i < clusters.Count; i++)
         {
             for (int j = 0; j < clusters[i].Count; j++)
@@ -90,6 +80,12 @@ public class Bubble : MonoBehaviour
                 {
                     points[k].lifeTime -= Time.deltaTime;
                 }
+
+                // adjust point radius according to the points count of each cluster
+                // small amount of points -> small radius
+                float ratio = Math.Clamp((float)clusters[i].Count / minPointCount, 1, 2);
+                float currentRadius = pointRadius * ratio;
+                points[k].radius = currentRadius;
             }
         }
     }
@@ -129,12 +125,6 @@ public class Bubble : MonoBehaviour
             CenterPos += (Vector3)clusterCenter;
         }
         CenterPos /= clusters.Count;
-
-        // for (int i = 0; i < transform.childCount; i++)
-        // {
-        //     CenterPos += transform.GetChild(i).position;
-        // }
-        // CenterPos /= transform.childCount;
     }
 
     public void Inflate() // Increase the number of points 
@@ -161,7 +151,7 @@ public class Bubble : MonoBehaviour
                                           // プレイヤー制御のクラスタのパーティクルをキーボード入力に従って移動させる
     {
         float raw = (float)MinPointCount / mainCluster.Count;
-        float exponent = 0.7f;      // 0 < exponent < 1 이면 낙폭 완화
+        float exponent = 0.7f;
         float force = Mathf.Pow(raw, exponent);
         force = Mathf.Min(1.2f, force);
 
@@ -175,14 +165,13 @@ public class Bubble : MonoBehaviour
     public void Jump(Vector2 inputVector)
     {
         float raw = (float)MinPointCount / mainCluster.Count;
-        float exponent = 0.7f;      // 0 < exponent < 1 이면 낙폭 완화
+        float exponent = 0.7f;
         float force = Mathf.Pow(raw, exponent);
         force = Mathf.Min(1.2f, force);
 
         foreach (int i in mainCluster)
         {
             fluidSim.particles[i].velocity += inputVector * force;
-            // fluidSim.particles[i].velocity += inputVector;
         }
     }
 
@@ -365,9 +354,5 @@ public class Bubble : MonoBehaviour
 
     void OnDrawGizmos()
     {
-        Gizmos.color = Color.red;
-        // float length = ((Vector2)MainClusterPos - averageContactPoint).magnitude + pointRadius * 4f;
-        // Gizmos.DrawLine(MainClusterPos, (MainClusterPos - (Vector3)GroundHit.point).normalized * length);
-        Gizmos.DrawLine(MainClusterPos, MainClusterPos - GroundNormal);
     }
 }

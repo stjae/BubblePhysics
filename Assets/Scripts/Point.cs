@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Point : MonoBehaviour
 {
-    public static float radius;
+    public float radius;
     FluidSim fluidSim;
     public bool isOnGround;
     public Vector3 groundNormal;

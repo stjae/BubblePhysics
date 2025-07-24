@@ -38,6 +38,8 @@ public class Render : MonoBehaviour
                                             // X軸の負方向（Y=0を除く）に配置されたメタボール用レンダーテクスチャ配列
                                             // 各次元の意味：
                                             // [X座標（負の値のみ）][Y方向（正/負）][Y座標（Y=0を除く）]
+    Vector3[] pointOffset = new Vector3[17]; // Since a point is too small, an offset is used to expand the area around the point 
+                                             // ポイントは非常に小さいため、オフセットを使用してポイント周辺の範囲も有効として扱う
     bool[,] mbRenderFlagsX;
     bool[,] mbRenderFlagsY;
     bool[,,] mbRenderFlagsPosX;
@@ -78,6 +80,24 @@ public class Render : MonoBehaviour
         metaballRenderTexture.Create();
         CreateRenderTextures1D();
         CreateRenderTextures2D();
+
+        pointOffset[0] = Vector3.zero;
+        pointOffset[1] = Vector3.up;
+        pointOffset[2] = Vector3.up + (Vector3.up + Vector3.right).normalized;
+        pointOffset[3] = (Vector3.up + Vector3.right).normalized;
+        pointOffset[4] = (Vector3.up + Vector3.right).normalized + Vector3.right;
+        pointOffset[5] = Vector3.right;
+        pointOffset[6] = Vector3.right + (Vector3.right + Vector3.down).normalized;
+        pointOffset[7] = (Vector3.right + Vector3.down).normalized;
+        pointOffset[8] = (Vector3.right + Vector3.down).normalized + Vector3.down;
+        pointOffset[9] = Vector3.down;
+        pointOffset[10] = Vector3.down + (Vector3.down + Vector3.left).normalized;
+        pointOffset[11] = (Vector3.down + Vector3.left).normalized;
+        pointOffset[12] = (Vector3.down + Vector3.left).normalized + Vector3.left;
+        pointOffset[13] = Vector3.left;
+        pointOffset[14] = Vector3.left + (Vector3.left + Vector3.up).normalized;
+        pointOffset[15] = (Vector3.left + Vector3.up).normalized;
+        pointOffset[16] = (Vector3.left + Vector3.up).normalized + Vector3.up;
     }
 
     void Update()
@@ -95,18 +115,6 @@ public class Render : MonoBehaviour
         shaderOffset = transform.position - bubble.CenterPos;
         positionOffset = bubble.CenterPos - transform.position;
 
-        Vector3[] pointOffset = new Vector3[9]; // Since a point is too small, an offset is used to expand the area around the point 
-                                                // ポイントは非常に小さいため、オフセットを使用してポイント周辺の範囲も有効として扱う
-        pointOffset[0] = Vector3.zero;
-        pointOffset[1] = 3 * Point.radius * Vector3.up;
-        pointOffset[2] = 3 * Point.radius * (Vector3.up + Vector3.right).normalized;
-        pointOffset[3] = 3 * Point.radius * Vector3.right;
-        pointOffset[4] = 3 * Point.radius * (Vector3.right + Vector3.down).normalized;
-        pointOffset[5] = 3 * Point.radius * Vector3.down;
-        pointOffset[6] = 3 * Point.radius * (Vector3.down + Vector3.left).normalized;
-        pointOffset[7] = 3 * Point.radius * Vector3.left;
-        pointOffset[8] = 3 * Point.radius * (Vector3.left + Vector3.up).normalized;
-
         for (int i = 0; i < fluidSim.particles.Length; i++)
         {
             if (!fluidSim.particles[i].isActive)
@@ -121,17 +129,20 @@ public class Render : MonoBehaviour
 
             Vector3 shaderPosition = shaderOffset + (Vector3)particle.localPosition;
 
-            for (int j = 0; j < 9; j++)
+            for (int j = 0; j < pointOffset.Length; j++)
             {
-                Vector3 signalPosition = shaderPosition + pointOffset[j];
+                for (float k = bubble.pointRadius; k <= bubble.pointRadius * 2f; k += bubble.pointRadius * 0.25f)
+                {
+                    Vector3 signalPosition = shaderPosition + pointOffset[j] * k;
 
-                if (Math.Abs(signalPosition.x) > textureTileCoverage || Math.Abs(signalPosition.y) > textureTileCoverage)
-                    continue;
+                    if (Math.Abs(signalPosition.x) > textureTileCoverage || Math.Abs(signalPosition.y) > textureTileCoverage)
+                        continue;
 
-                SignalRenderFlagsX(signalPosition);
-                SignalRenderFlagsY(signalPosition);
-                SignalRenderFlagsPosX(signalPosition);
-                SignalRenderFlagsNegX(signalPosition);
+                    SignalRenderFlagsX(signalPosition);
+                    SignalRenderFlagsY(signalPosition);
+                    SignalRenderFlagsPosX(signalPosition);
+                    SignalRenderFlagsNegX(signalPosition);
+                }
             }
         }
 
@@ -140,7 +151,7 @@ public class Render : MonoBehaviour
 
         metaballRenderCS.SetFloat("Threshold", metaballThreshold);
         metaballRenderCS.SetFloat("Resolution", mbRenderTextureSize);
-        metaballRenderCS.SetFloat("Radius", Point.radius);
+        metaballRenderCS.SetFloat("Radius", bubble.pointRadius);
         metaballRenderCS.SetFloat("MaxLifeTime", bubble.MaxPointLifeTime);
         metaballRenderCS.SetInt("Count", bubble.MaxPointCount);
         metaballRenderCS.SetBuffer(0, "PositionsBuffer", localPositionsBuffer);
