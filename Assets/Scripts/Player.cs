@@ -47,10 +47,14 @@ public class Player : MonoBehaviour
         inputVector = new Vector3();
 
         if (Input.GetKey(KeyCode.A))
-            inputVector += leftVec * FluidSim.deltaTime * speed;
+        {
+            inputVector = leftVec * FluidSim.deltaTime * speed;
+        }
 
         if (Input.GetKey(KeyCode.D))
-            inputVector += rightVec * FluidSim.deltaTime * speed;
+        {
+            inputVector = rightVec * FluidSim.deltaTime * speed;
+        }
 
         if (isAbleToJump)
         {
@@ -87,5 +91,12 @@ public class Player : MonoBehaviour
     {
         bubble.Move(inputVector);
         bubble.Jump(smoothNormal.normalized * currentJumpForce);
+    }
+
+    void OnDrawGizmos()
+    {
+        // Gizmos.color = Color.red;
+        // Gizmos.DrawRay(bubble.MainClusterPos, inputVector);
+        // Debug.Log(inputVector);
     }
 }

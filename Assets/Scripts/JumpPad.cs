@@ -18,30 +18,22 @@ public class JumpPad : MonoBehaviour
     Rigidbody2D rb;
     HashSet<int> contactedParticles;
 
-    void Start()
+    void Awake()
     {
+        bubble = FindFirstObjectByType<Bubble>();
+        fluidSim = FindFirstObjectByType<FluidSim>();
         rb = GetComponent<Rigidbody2D>();
         StartCoroutine(MoveAndBounceLoop());
         contactedParticles = new HashSet<int>();
     }
 
-    void Update()
-    {
-    }
-
     void OnCollisionEnter2D(Collision2D collisionInfo)
     {
-        if (collisionInfo.gameObject.name == "Bubble")
-        {
-            bubble = collisionInfo.gameObject.GetComponent<Bubble>();
-            fluidSim = collisionInfo.gameObject.GetComponent<FluidSim>();
-        }
-
         foreach (ContactPoint2D cp in collisionInfo.contacts)
         {
             if (cp.collider.gameObject.layer == LayerMask.NameToLayer("Point"))
             {
-                contactedParticles.Add(cp.collider.GetComponent<Point>().GetIndex());
+                contactedParticles.Add(cp.collider.gameObject.transform.GetSiblingIndex());
             }
         }
     }
@@ -58,10 +50,10 @@ public class JumpPad : MonoBehaviour
         {
             yield return new WaitForSeconds(cooldown);
 
-            // 아래→위
+            // up
             yield return MoveTo(transform.position + transform.up * moveAmplitude, moveDuration);
 
-            // 위→아래
+            // down
             yield return MoveTo(transform.position - transform.up * moveAmplitude, moveDuration);
         }
     }
@@ -83,16 +75,19 @@ public class JumpPad : MonoBehaviour
 
     void Bounce()
     {
-        if (bubble)
+        if (bubble == null)
         {
-            foreach (List<int> cluster in bubble.clusters)
+            Debug.Log("Could not find Bubble object to interact");
+            return;
+        }
+
+        foreach (List<int> cluster in bubble.clusters)
+        {
+            foreach (int i in cluster)
             {
-                foreach (int i in cluster)
+                if (contactedParticles.Contains(i))
                 {
-                    if (contactedParticles.Contains(i))
-                    {
-                        fluidSim.particles[i].velocity = (Vector2)transform.up * jumpPower;
-                    }
+                    fluidSim.particles[i].velocity = (Vector2)transform.up * jumpPower;
                 }
             }
         }

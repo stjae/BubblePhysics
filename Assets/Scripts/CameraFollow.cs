@@ -38,7 +38,6 @@ public class CameraFollow : MonoBehaviour
         Bounds bounds = new Bounds();
         foreach (Point point in points)
         {
-            // if (!point.gameObject.activeSelf) continue;
             if (count == 0) bounds = new Bounds(transform.position, Vector3.zero);
             bounds.Encapsulate(point.transform.position);
             count++;

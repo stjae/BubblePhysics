@@ -30,7 +30,6 @@ public class Bubble : MonoBehaviour
     [Tooltip("Determine how fast the points decrease")]
     float deflationInterval; // ポイントの減少速度を決定する
     FluidSim fluidSim;
-    Render render;
     bool isInflating;
     bool isDeflating;
     public List<List<int>> clusters;
@@ -45,11 +44,18 @@ public class Bubble : MonoBehaviour
     public RaycastHit2D GroundHit { get; private set; }
     public Vector3 GroundNormal { get; private set; }
     Vector2 averageContactPoint;
+    [SerializeField]
+    float minMoveSpeed;
+    [SerializeField]
+    float maxMoveSpeed;
+    [SerializeField]
+    float minJumpForce;
+    [SerializeField]
+    float maxJumpForce;
 
     void Awake()
     {
         fluidSim = GetComponent<FluidSim>();
-        render = GetComponent<Render>();
         points = new Point[MaxPointCount];
         MainClusterPos = transform.parent.position;
         for (int i = 0; i < MaxPointCount; i++)
@@ -150,24 +156,20 @@ public class Bubble : MonoBehaviour
     public void Move(Vector2 inputVector) // Moves the particles of the player-controlled cluster according to keyboard input
                                           // プレイヤー制御のクラスタのパーティクルをキーボード入力に従って移動させる
     {
-        float raw = (float)MinPointCount / mainCluster.Count;
-        float exponent = 0.7f;
-        float force = Mathf.Pow(raw, exponent);
-        force = Mathf.Min(1.2f, force);
+        float ratio = (float)mainCluster.Count / maxPointCount;
+        float speed = Mathf.Lerp(maxMoveSpeed, minMoveSpeed, ratio);
 
         foreach (int i in mainCluster)
         {
             if (fluidSim.particles[i].velocity.magnitude < speedLimit)
-                fluidSim.particles[i].velocity += inputVector * force;
+                fluidSim.particles[i].velocity += inputVector * speed;
         }
     }
 
     public void Jump(Vector2 inputVector)
     {
-        float raw = (float)MinPointCount / mainCluster.Count;
-        float exponent = 0.7f;
-        float force = Mathf.Pow(raw, exponent);
-        force = Mathf.Min(1.2f, force);
+        float ratio = (float)mainCluster.Count / maxPointCount;
+        float force = Mathf.Lerp(maxJumpForce, minJumpForce, ratio);
 
         foreach (int i in mainCluster)
         {
@@ -195,7 +197,7 @@ public class Bubble : MonoBehaviour
             averageContactPoint /= onGroundCount;
             GroundNormal /= onGroundCount;
         }
-        int excludedMask = 1 << LayerMask.NameToLayer("Point");
+        int excludedMask = (1 << LayerMask.NameToLayer("Point")) | (1 << LayerMask.NameToLayer("Ignore Raycast"));
         int layerMask = ~excludedMask;
         float length = ((Vector2)MainClusterPos - averageContactPoint).magnitude + pointRadius * 8f;
         // If no point in the player-controlled cluster hits the ground
@@ -350,9 +352,5 @@ public class Bubble : MonoBehaviour
             center += fluidSim.particles[cluster[i]].position;
         }
         return center / Math.Max(cluster.Count, 1);
-    }
-
-    void OnDrawGizmos()
-    {
     }
 }
