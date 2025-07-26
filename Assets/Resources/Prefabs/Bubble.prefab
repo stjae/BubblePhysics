@@ -47,14 +47,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9ede41d64125e413fa339bf1df15a329, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speedLimit: 0
+  speedLimit: 0.1
   point: {fileID: 9165823829223697808, guid: b8e0623ea5e95437382653969385dde5, type: 3}
+  points: []
   pointRadius: 0.15
+  maxPointLifeTime: 20
   maxPointCount: 170
-  minPointCount: 60
+  minPointCount: 10
+  initialPointCount: 50
   inflationInterval: 0.015
   deflationInterval: 0.015
   neighborRadius: 0.5
+  minMoveSpeed: 0.7
+  maxMoveSpeed: 1.2
+  minJumpForce: 0.5
+  maxJumpForce: 1.2
 --- !u!50 &-402575618039242784
 Rigidbody2D:
   serializedVersion: 5
@@ -111,7 +118,6 @@ MonoBehaviour:
   restDensity: 30
   stiffness: 0.11
   nearStiffness: 0.9
-  springStiffness: 0.05
   yieldRatio: 0.25
   plasticity: 0.5
   linearViscosity: 1

@@ -89,7 +89,7 @@ public class EyeAnimation : MonoBehaviour
 
     void AdjustEyeDirection()
     {
-        float scale = (float)bubble.mainCluster.Count / bubble.MinPointCount;
+        float scale = (float)bubble.mainCluster.Count / bubble.InitialPointCount;
         transform.localScale = direction * (float)Math.Sqrt(scale);
         if (Input.GetKeyDown(KeyCode.A))
             direction = new Vector3(1, 1, 1);

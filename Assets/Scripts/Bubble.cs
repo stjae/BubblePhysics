@@ -22,6 +22,9 @@ public class Bubble : MonoBehaviour
     [SerializeField]
     int minPointCount;
     public int MinPointCount { get { return minPointCount; } private set { minPointCount = value; } }
+    [SerializeField]
+    int initialPointCount;
+    public int InitialPointCount { get { return initialPointCount; } private set { initialPointCount = value; } }
     public int ActivePointCount { get; private set; }
     [SerializeField]
     [Tooltip("Determine how fast the points increase")]
@@ -52,6 +55,7 @@ public class Bubble : MonoBehaviour
     float minJumpForce;
     [SerializeField]
     float maxJumpForce;
+    bool onPlatform;
 
     void Awake()
     {
@@ -89,7 +93,7 @@ public class Bubble : MonoBehaviour
 
                 // adjust point radius according to the points count of each cluster
                 // small amount of points -> small radius
-                float ratio = Math.Clamp((float)clusters[i].Count / minPointCount, 1, 2);
+                float ratio = Math.Clamp((float)clusters[i].Count / initialPointCount, 1, 2);
                 float currentRadius = pointRadius * ratio;
                 points[k].radius = currentRadius;
             }
@@ -136,7 +140,7 @@ public class Bubble : MonoBehaviour
     public void Inflate() // Increase the number of points 
                           // ポイントの数を増やす
     {
-        if (isInflating)
+        if (isInflating || !onPlatform)
             return;
 
         isInflating = true;
@@ -146,7 +150,7 @@ public class Bubble : MonoBehaviour
     public void Deflate() // Decrease the number of points
                           // ポイントの数を減らす
     {
-        if (isDeflating)
+        if (isDeflating || mainCluster.Count <= minPointCount)
             return;
 
         isDeflating = true;
@@ -207,12 +211,14 @@ public class Bubble : MonoBehaviour
             length = 0;
         }
         GroundHit = Physics2D.Raycast(MainClusterPos, -GroundNormal, length, layerMask);
+
+        onPlatform = GroundHit && GroundHit.collider.name == "Platform";
     }
 
-    IEnumerator InflateInitialCoroutine() // Increase the number of points to the value of minPointCount
-                                          // ポイントの数を minPointCount まで増やす
+    IEnumerator InflateInitialCoroutine() // Increase the number of points to the value of initialPointCount
+                                          // ポイントの数を initialPointCount まで増やす
     {
-        while (ActivePointCount < MinPointCount)
+        while (ActivePointCount < initialPointCount)
         {
             for (int i = 0; i < MaxPointCount; i++)
             {

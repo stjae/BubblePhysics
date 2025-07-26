@@ -18,11 +18,11 @@ StructuredBuffer<float> LifeTimesBuffer;
 {
     float2 texCoord = int2(id.x - Resolution / 2, id.y - Resolution / 2);
 
-    float4 col = float4(0, 0, 0, 0);
+    float3 col = float3(0, 0, 0);
     float infl = 0.0; // total influence
     for (int i = 0; i < Count; i++)
     {
-        if(PositionsBuffer[i].w < 1)
+        if (PositionsBuffer[i].w < 1)
             continue;
 
         float4 mb = (PositionsBuffer[i] + Offset) * Resolution;
@@ -30,13 +30,14 @@ StructuredBuffer<float> LifeTimesBuffer;
         float currInfl = Radius * Radius * Resolution;
         currInfl /= (pow(abs(texCoord.x - mb.x), 2.0) + pow(abs(texCoord.y - mb.y), 2.0));
         infl += currInfl;
-        float lifeColor = LifeTimesBuffer[i] / MaxLifeTime;
-        col += float4(0, 1, 0, max(0.5, lifeColor)) * currInfl;
+        // float lifeColor = LifeTimesBuffer[i] / MaxLifeTime;
+        // col += float4(0, 1, 0, max(0.5, lifeColor)) * currInfl;
+        col += float3(0, 1, 0) * currInfl;
     }
 
     float4 outColor = float4(0, 0, 0, 0);
     if (infl > Threshold)
-        outColor = float4(normalize(col));
+        outColor = float4(normalize(col), 0.7);
 
     Result[id.xy] = outColor;
 }
