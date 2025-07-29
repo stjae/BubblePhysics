@@ -83,8 +83,7 @@ public class Bubble : MonoBehaviour
                 int k = clusters[i][j];
                 if (i == mainClusterIndex)
                 {
-                    points[k].lifeTime += Time.deltaTime;
-                    points[k].lifeTime = Math.Min(points[k].lifeTime, maxPointLifeTime);
+                    points[k].lifeTime = maxPointLifeTime;
                 }
                 else
                 {

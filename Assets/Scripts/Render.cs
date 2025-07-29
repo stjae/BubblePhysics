@@ -53,6 +53,7 @@ public class Render : MonoBehaviour
     static public int textureTileCoverage = 50;
     Vector3 shaderOffset;
     Vector3 positionOffset;
+    float elapsed;
 
     void Start()
     {
@@ -102,6 +103,8 @@ public class Render : MonoBehaviour
 
     void Update()
     {
+        elapsed += Time.deltaTime;
+
         objectToWorld = new Matrix4x4[bubble.MaxPointCount];
         worldPositions = new Vector4[bubble.MaxPointCount];
         localPositions = new Vector4[bubble.MaxPointCount];
@@ -153,6 +156,7 @@ public class Render : MonoBehaviour
         metaballRenderCS.SetFloat("Resolution", mbRenderTextureSize);
         metaballRenderCS.SetFloat("Radius", bubble.pointRadius);
         metaballRenderCS.SetFloat("MaxLifeTime", bubble.MaxPointLifeTime);
+        metaballRenderCS.SetFloat("Time", elapsed);
         metaballRenderCS.SetInt("Count", bubble.MaxPointCount);
         metaballRenderCS.SetBuffer(0, "PositionsBuffer", localPositionsBuffer);
         metaballRenderCS.SetBuffer(0, "LifeTimesBuffer", pointLifeTimesBuffer);

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Sensor : MonoBehaviour
+public class ScaleSensor : MonoBehaviour
 {
     public HashSet<int> enteredPointIndices;
 
@@ -12,9 +12,7 @@ public class Sensor : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D colliderInfo)
     {
-        Point point = colliderInfo.GetComponent<Point>();
-
-        if (point)
+        if (colliderInfo.TryGetComponent<Point>(out Point point))
         {
             enteredPointIndices.Add(point.GetIndex());
         }
@@ -22,12 +20,9 @@ public class Sensor : MonoBehaviour
 
     void OnTriggerExit2D(Collider2D colliderInfo)
     {
-        Point point = colliderInfo.GetComponent<Point>();
-
-        if (point)
+        if (colliderInfo.TryGetComponent<Point>(out var point))
         {
             enteredPointIndices.Remove(point.GetIndex());
         }
     }
-
 }

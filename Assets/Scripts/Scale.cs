@@ -1,3 +1,4 @@
+using System.Net;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 
@@ -5,8 +6,10 @@ public class Scale : MonoBehaviour
 {
     SpriteRenderer spriteRenderer;
     TMPro.TextMeshPro progressText;
-    Sensor sensor;
+    ScaleSensor sensor;
     ScaleEndPoint scaleEndPoint;
+    Transform platform;
+    Transform square;
     Bubble bubble;
     public int goalPointCount;
     Vector3 initialPos;
@@ -16,17 +19,20 @@ public class Scale : MonoBehaviour
     Vector3 velocity;
     public float smoothTime;
     float totalHeight;
-    bool clear;
+    bool hitBottom;
+    public bool renderProgressText;
 
     void Awake()
     {
-        spriteRenderer = transform.GetComponent<SpriteRenderer>();
-        progressText = transform.Find("Progress Text").GetComponent<TMPro.TextMeshPro>();
+        spriteRenderer = transform.GetComponentInChildren<SpriteRenderer>();
+        progressText = transform.GetComponentInChildren<TMPro.TextMeshPro>();
         bubble = FindFirstObjectByType<Bubble>();
-        sensor = transform.GetComponentInChildren<Sensor>();
-        scaleEndPoint = transform.Find("End Point").GetComponent<ScaleEndPoint>();
-        initialPos = transform.position;
-        totalHeight = initialPos.y - scaleEndPoint.transform.position.y;
+        sensor = transform.GetComponentInChildren<ScaleSensor>();
+        scaleEndPoint = transform.GetComponentInChildren<ScaleEndPoint>();
+        platform = transform.Find("Platform");
+        square = transform.Find("Platform").Find("Square");
+        initialPos = platform.position;
+        totalHeight = square.position.y - scaleEndPoint.transform.position.y;
     }
 
     void Update()
@@ -37,7 +43,7 @@ public class Scale : MonoBehaviour
             return;
         }
 
-        if (bubble.GroundHit && bubble.GroundHit.collider.gameObject == gameObject)
+        if (bubble.GroundHit && bubble.GroundHit.collider.gameObject == square.gameObject)
         {
             isOnBoard = true;
         }
@@ -46,32 +52,39 @@ public class Scale : MonoBehaviour
             isOnBoard = false;
         }
 
-        if (clear) return;
+        if (hitBottom) return;
 
         float t = Mathf.Clamp01((float)sensor.enteredPointIndices.Count / goalPointCount);
-        float targetHeight = scaleEndPoint.transform.position.y;
-        float descendHeight = Mathf.Lerp(0, initialPos.y - targetHeight, t);
-        float heightRemain = transform.position.y - scaleEndPoint.transform.position.y;
+        float descendHeight = Mathf.Lerp(0, totalHeight, t);
+        float heightRemain = square.position.y - scaleEndPoint.transform.position.y;
 
-        if (heightRemain < 0.01f)
+        if (heightRemain < 0.1f)
         {
-            transform.position = new Vector3(transform.position.x, targetHeight, transform.position.z);
-            clear = true;
+            platform.position = new Vector3(platform.transform.position.x, scaleEndPoint.transform.position.y, platform.transform.position.z);
+            hitBottom = true;
         }
 
         if (isOnBoard)
         {
             Vector3 targetPos = new Vector3(initialPos.x, initialPos.y - descendHeight, initialPos.z);
-            transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref velocity, smoothTime);
+            platform.position = Vector3.SmoothDamp(platform.position, targetPos, ref velocity, smoothTime);
         }
         else
         {
-            transform.position = Vector3.SmoothDamp(transform.position, initialPos, ref velocity, smoothTime);
+            platform.position = Vector3.SmoothDamp(platform.position, initialPos, ref velocity, smoothTime);
         }
 
-        t = Mathf.Clamp01((initialPos.y - transform.position.y) / totalHeight);
+        t = Mathf.Clamp01((initialPos.y - platform.position.y) / totalHeight);
         Color progressColor = Color.Lerp(initialColor, endColor, t);
         spriteRenderer.color = progressColor;
-        progressText.text = ((int)(100 * t)).ToString() + " %";
+
+        if (renderProgressText)
+        {
+            progressText.text = ((int)(100 * t)).ToString() + " %";
+        }
+        else
+        {
+            progressText.text = "";
+        }
     }
 }

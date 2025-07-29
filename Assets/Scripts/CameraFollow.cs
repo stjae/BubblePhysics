@@ -13,15 +13,15 @@ public class CameraFollow : MonoBehaviour
     float sizeVelocity;
 
     Camera cam;
-    public Transform target;
+    public Player player;
     Bubble bubble;
     Point[] points;
 
     void Awake()
     {
         cam = GetComponent<Camera>();
-        bubble = target.GetComponent<Bubble>();
-        transform.position = bubble.MainClusterPos;
+        bubble = player.transform.Find("Bubble").GetComponent<Bubble>();
+        transform.position = player.transform.position;
         points = new Point[bubble.transform.childCount];
         for (int i = 0; i < bubble.transform.childCount; i++)
         {

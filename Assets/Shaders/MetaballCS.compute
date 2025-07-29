@@ -8,36 +8,52 @@ float Threshold;
 float Resolution;
 float Radius;
 float MaxLifeTime;
+float Time;
 float4 Offset;
 int Count;
 
 StructuredBuffer<float4> PositionsBuffer;
 StructuredBuffer<float> LifeTimesBuffer;
 
+float maxInterval = 1.0;
+float minInterval = 0.1;
+
 [numthreads(8, 8, 1)] void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    float2 texCoord = int2(id.x - Resolution / 2, id.y - Resolution / 2);
+    int2 coord = int2(id.x, id.y);
+    float2 texCoord = coord - Resolution * 0.5;
 
-    float3 col = float3(0, 0, 0);
-    float infl = 0.0; // total influence
+    float totalInfl = 0.0;
+    float3 totalCol = float3(0, 0, 0);
+    float totalAlpha = 0.0;
+
     for (int i = 0; i < Count; i++)
     {
-        if (PositionsBuffer[i].w < 1)
-            continue;
+        if (PositionsBuffer[i].w < 1) continue;
 
-        float4 mb = (PositionsBuffer[i] + Offset) * Resolution;
-        // influence from current metaball
-        float currInfl = Radius * Radius * Resolution;
-        currInfl /= (pow(abs(texCoord.x - mb.x), 2.0) + pow(abs(texCoord.y - mb.y), 2.0));
-        infl += currInfl;
-        // float lifeColor = LifeTimesBuffer[i] / MaxLifeTime;
-        // col += float4(0, 1, 0, max(0.5, lifeColor)) * currInfl;
-        col += float3(0, 1, 0) * currInfl;
-    }
+        float2 mbPos = (PositionsBuffer[i].xy + Offset.xy) * Resolution;
+        float dist2 = pow(texCoord.x - mbPos.x, 2) + pow(texCoord.y - mbPos.y, 2);
+        float infl = (Radius * Radius * Resolution) / dist2;
+
+        float lifeNorm = saturate(LifeTimesBuffer[i] / MaxLifeTime);
+        float interval = lerp(minInterval, maxInterval, lifeNorm);
+
+        float blink = 0.5 + 0.5 * sin(Time * (1.0 / interval) * 6.28318);
+
+        totalCol += float3(0, 1, 0) * infl;
+        totalAlpha += infl * blink;
+
+        totalInfl += infl;
+    }   
 
     float4 outColor = float4(0, 0, 0, 0);
-    if (infl > Threshold)
-        outColor = float4(normalize(col), 0.7);
 
-    Result[id.xy] = outColor;
+    if (totalInfl > Threshold)
+    {
+        float3 normCol = normalize(totalCol);
+        float a = saturate(totalAlpha);
+        outColor = float4(normCol, 0.7);
+    }
+
+    Result[coord] = outColor;
 }
