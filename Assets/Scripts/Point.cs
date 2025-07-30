@@ -1,24 +1,32 @@
+using System;
 using UnityEngine;
 
 public class Point : MonoBehaviour
 {
     public float radius;
+    Bubble bubble;
     FluidSim fluidSim;
     public bool isOnGround;
     public Vector3 groundNormal;
     public float collisionForce;
     public float lifeTime;
+    public bool isVisible;
+    float maxInterval = 1.0f;
+    float minInterval = 0.5f;
 
     void Awake()
     {
+        isVisible = true;
         gameObject.layer = LayerMask.NameToLayer("Point");
         transform.GetComponent<CircleCollider2D>().radius = radius;
+        bubble = transform.parent.GetComponent<Bubble>();
         fluidSim = transform.parent.GetComponent<FluidSim>();
     }
 
     void Update()
     {
         UpdateLife();
+        Blink();
     }
     void FixedUpdate()
     {
@@ -71,5 +79,15 @@ public class Point : MonoBehaviour
             fluidSim.particles[transform.GetSiblingIndex()] = new Particle();
             gameObject.SetActive(false);
         }
+    }
+
+    void Blink()
+    {
+        if (lifeTime == bubble.MaxPointLifeTime) return;
+
+        float normalized = lifeTime / bubble.MaxPointLifeTime;
+        float interval = Mathf.Lerp(minInterval, maxInterval, normalized);
+        float cycles = Time.time / interval;
+        isVisible = (Mathf.FloorToInt(cycles) % 2) == 0;
     }
 }

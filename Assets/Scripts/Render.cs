@@ -13,8 +13,10 @@ public class Render : MonoBehaviour
     Vector4[] worldPositions;
     Vector4[] localPositions;
     float[] pointLifeTimes;
+    float[] isVisibleFlags;
     ComputeBuffer localPositionsBuffer;
     ComputeBuffer pointLifeTimesBuffer;
+    ComputeBuffer isVisibleFlagsBuffer;
     Mesh metaballCanvasMesh; // Quad used to display the metaball render texture 
                              // メタボールレンダーテクスチャを適用する四角形メッシュ
     Material metaballCanvasMeshMaterial;
@@ -53,7 +55,6 @@ public class Render : MonoBehaviour
     static public int textureTileCoverage = 50;
     Vector3 shaderOffset;
     Vector3 positionOffset;
-    float elapsed;
 
     void Start()
     {
@@ -67,6 +68,7 @@ public class Render : MonoBehaviour
         pointLifeTimes = new float[transform.childCount];
         localPositionsBuffer = new ComputeBuffer(transform.childCount, sizeof(float) * 4, ComputeBufferType.Default);
         pointLifeTimesBuffer = new ComputeBuffer(transform.childCount, sizeof(float), ComputeBufferType.Default);
+        isVisibleFlagsBuffer = new ComputeBuffer(transform.childCount, sizeof(float), ComputeBufferType.Default);
 
         CreateCanvasMesh();
 
@@ -103,11 +105,10 @@ public class Render : MonoBehaviour
 
     void Update()
     {
-        elapsed += Time.deltaTime;
-
         objectToWorld = new Matrix4x4[bubble.MaxPointCount];
         worldPositions = new Vector4[bubble.MaxPointCount];
         localPositions = new Vector4[bubble.MaxPointCount];
+        isVisibleFlags = new float[bubble.MaxPointCount];
 
         mbRenderFlagsX = new bool[2, textureTileCoverage];
         mbRenderFlagsY = new bool[2, textureTileCoverage];
@@ -129,6 +130,7 @@ public class Render : MonoBehaviour
             localPositions[i] = particle.localPosition;
             localPositions[i].w = 1; // use W coord for active particle flag
             pointLifeTimes[i] = points[i].lifeTime;
+            isVisibleFlags[i] = points[i].isVisible ? 1 : 0;
 
             Vector3 shaderPosition = shaderOffset + (Vector3)particle.localPosition;
 
@@ -151,15 +153,17 @@ public class Render : MonoBehaviour
 
         localPositionsBuffer.SetData(localPositions);
         pointLifeTimesBuffer.SetData(pointLifeTimes);
+        isVisibleFlagsBuffer.SetData(isVisibleFlags);
 
         metaballRenderCS.SetFloat("Threshold", metaballThreshold);
         metaballRenderCS.SetFloat("Resolution", mbRenderTextureSize);
         metaballRenderCS.SetFloat("Radius", bubble.pointRadius);
         metaballRenderCS.SetFloat("MaxLifeTime", bubble.MaxPointLifeTime);
-        metaballRenderCS.SetFloat("Time", elapsed);
         metaballRenderCS.SetInt("Count", bubble.MaxPointCount);
+
         metaballRenderCS.SetBuffer(0, "PositionsBuffer", localPositionsBuffer);
         metaballRenderCS.SetBuffer(0, "LifeTimesBuffer", pointLifeTimesBuffer);
+        metaballRenderCS.SetBuffer(0, "IsVisibleFlagsBuffer", isVisibleFlagsBuffer);
 
         RenderMetaballTiles();
     }
@@ -417,6 +421,7 @@ public class Render : MonoBehaviour
     {
         if (localPositionsBuffer != null) localPositionsBuffer.Release();
         if (pointLifeTimesBuffer != null) pointLifeTimesBuffer.Release();
+        if (isVisibleFlagsBuffer != null) isVisibleFlagsBuffer.Release();
 
     }
 }

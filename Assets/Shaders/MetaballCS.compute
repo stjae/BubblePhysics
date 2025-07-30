@@ -1,22 +1,16 @@
-// Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-// Create a RenderTexture with enableRandomWrite flag and set it
-// with cs.SetTexture
 RWTexture2D<float4> Result;
 float Threshold;
 float Resolution;
 float Radius;
 float MaxLifeTime;
-float Time;
 float4 Offset;
 int Count;
 
 StructuredBuffer<float4> PositionsBuffer;
 StructuredBuffer<float> LifeTimesBuffer;
-
-float maxInterval = 1.0;
-float minInterval = 0.1;
+StructuredBuffer<float> IsVisibleFlagsBuffer;
 
 [numthreads(8, 8, 1)] void CSMain(uint3 id : SV_DispatchThreadID)
 {
@@ -27,6 +21,9 @@ float minInterval = 0.1;
     float3 totalCol = float3(0, 0, 0);
     float totalAlpha = 0.0;
 
+    float minAlpha = 0.2;
+    float maxAlpha = 0.8;
+
     for (int i = 0; i < Count; i++)
     {
         if (PositionsBuffer[i].w < 1) continue;
@@ -34,25 +31,25 @@ float minInterval = 0.1;
         float2 mbPos = (PositionsBuffer[i].xy + Offset.xy) * Resolution;
         float dist2 = pow(texCoord.x - mbPos.x, 2) + pow(texCoord.y - mbPos.y, 2);
         float infl = (Radius * Radius * Resolution) / dist2;
+        totalInfl += infl;
 
         float lifeNorm = saturate(LifeTimesBuffer[i] / MaxLifeTime);
-        float interval = lerp(minInterval, maxInterval, lifeNorm);
+        float alpha = lerp(minAlpha, maxAlpha, lifeNorm);
 
-        float blink = 0.5 + 0.5 * sin(Time * (1.0 / interval) * 6.28318);
+        if (IsVisibleFlagsBuffer[i] > 0)
+            alpha = maxAlpha;
 
         totalCol += float3(0, 1, 0) * infl;
-        totalAlpha += infl * blink;
-
-        totalInfl += infl;
-    }   
+        totalAlpha += alpha * infl;
+    }
 
     float4 outColor = float4(0, 0, 0, 0);
 
     if (totalInfl > Threshold)
     {
-        float3 normCol = normalize(totalCol);
-        float a = saturate(totalAlpha);
-        outColor = float4(normCol, 0.7);
+        float3 col = normalize(totalCol);
+        float a = totalAlpha / totalInfl;
+        outColor = float4(col, a);
     }
 
     Result[coord] = outColor;

@@ -78,6 +78,7 @@ public class Bubble : MonoBehaviour
     {
         for (int i = 0; i < clusters.Count; i++)
         {
+            float clusterAvgLifeTime = 0.0f;
             for (int j = 0; j < clusters[i].Count; j++)
             {
                 int k = clusters[i][j];
@@ -90,11 +91,20 @@ public class Bubble : MonoBehaviour
                     points[k].lifeTime -= Time.deltaTime;
                 }
 
+                clusterAvgLifeTime += points[k].lifeTime;
+
                 // adjust point radius according to the points count of each cluster
                 // small amount of points -> small radius
                 float ratio = Math.Clamp((float)clusters[i].Count / initialPointCount, 1, 2);
                 float currentRadius = pointRadius * ratio;
                 points[k].radius = currentRadius;
+            }
+
+            clusterAvgLifeTime /= clusters[i].Count;
+
+            foreach (int c in clusters[i])
+            {
+                points[c].lifeTime = clusterAvgLifeTime;
             }
         }
     }
@@ -111,6 +121,7 @@ public class Bubble : MonoBehaviour
             else
             {
                 p.transform.position = MainClusterPos;
+                p.GetParticle().isActive = false;
             }
         }
         fluidSim.Simulate();
