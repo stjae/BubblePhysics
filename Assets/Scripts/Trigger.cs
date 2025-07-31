@@ -5,9 +5,10 @@ public class Trigger : MonoBehaviour
 {
     public Color onColor;
     public Color offColor;
-    SpriteRenderer spriteRenderer;
+    public SpriteRenderer spriteRenderer;
     HashSet<int> enteredPointIndices;
     public bool isTriggered;
+    public bool isTriggerFromOutside;
 
     void Awake()
     {
@@ -18,6 +19,8 @@ public class Trigger : MonoBehaviour
 
     void Update()
     {
+        if (isTriggerFromOutside) return;
+
         if (enteredPointIndices.Count != 0)
         {
             spriteRenderer.color = onColor;

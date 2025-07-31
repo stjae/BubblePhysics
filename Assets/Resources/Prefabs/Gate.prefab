@@ -178,3 +178,4 @@ MonoBehaviour:
   trigger1: {fileID: 0}
   trigger2: {fileID: 0}
   openHeight: 5
+  isOpened: 0

@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEditor.SearchService;
 using UnityEngine;
 
 public class Bubble : MonoBehaviour
@@ -65,27 +63,11 @@ public class Bubble : MonoBehaviour
         fluidSim = GetComponent<FluidSim>();
         points = new Point[MaxPointCount];
         initialPos = transform.parent.position;
-        MainClusterPos = transform.parent.position;
-        PhysicsMaterial2D pointPhysicsMat = new PhysicsMaterial2D();
-        pointPhysicsMat.friction = 0;
-        for (int i = 0; i < MaxPointCount; i++)
-        {
-            points[i] = Instantiate(point, transform, false);
-            points[i].gameObject.SetActive(false);
-            points[i].radius = pointRadius;
-            points[i].GetComponent<Collider2D>().sharedMaterial = pointPhysicsMat;
-        }
-        isInflating = true;
-        StartCoroutine(InflateInitialCoroutine());
-        clusters = new List<List<int>>();
-        visited = new List<bool>();
-        mainCluster = new List<int>();
+        Init();
     }
 
     void Update()
     {
-        CheckRestart();
-
         for (int i = 0; i < clusters.Count; i++)
         {
             float clusterAvgLifeTime = 0.0f;
@@ -119,14 +101,22 @@ public class Bubble : MonoBehaviour
         }
     }
 
-    void CheckRestart()
+    public void Init()
     {
-        if (mainCluster.Count < 1 && !isInflating)
+        ActivePointCount = 0;
+        MainClusterPos = transform.parent.position;
+        for (int i = 0; i < MaxPointCount; i++)
         {
-            MainClusterPos = initialPos;
-            isInflating = true;
-            StartCoroutine(InflateInitialCoroutine());
+            if (points[i] == null)
+                points[i] = Instantiate(point, transform, false);
+            points[i].gameObject.SetActive(false);
+            points[i].radius = pointRadius;
         }
+        isInflating = true;
+        StartCoroutine(InflateInitialCoroutine());
+        clusters = new List<List<int>>();
+        visited = new List<bool>();
+        mainCluster = new List<int>();
     }
 
     void FixedUpdate()
@@ -383,7 +373,7 @@ public class Bubble : MonoBehaviour
         return neighbors;
     }
 
-    Vector2 GetClusterPos(List<int> cluster)
+    public Vector2 GetClusterPos(List<int> cluster)
     {
         Vector2 center = new Vector2();
         for (int i = 0; i < cluster.Count; i++)

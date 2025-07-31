@@ -16,6 +16,7 @@ public class CameraFollow : MonoBehaviour
     public Player player;
     Bubble bubble;
     Point[] points;
+    float initialSize;
 
     void Awake()
     {
@@ -27,13 +28,35 @@ public class CameraFollow : MonoBehaviour
         {
             points[i] = bubble.transform.GetChild(i).GetComponent<Point>();
         }
+        initialSize = cam.orthographicSize;
     }
 
     void FixedUpdate()
     {
-        Vector3 targetPos = bubble.CenterPos + offset;
-        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref posVelocity, posSmoothTime);
+        if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+        {
+            cam.orthographicSize = Mathf.SmoothDamp(
+                cam.orthographicSize,
+                maxSize,
+                ref sizeVelocity,
+                sizeSmoothTime
+            );
+        }
+        else if (Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl))
+        {
+            cam.orthographicSize = Mathf.SmoothDamp(
+                cam.orthographicSize,
+                initialSize,
+                ref sizeVelocity,
+                sizeSmoothTime
+            );
+        }
 
+        UpdateCameraBounds();
+    }
+
+    void UpdateCameraBounds()
+    {
         int count = 0;
         Bounds bounds = new Bounds();
         foreach (Point point in points)
@@ -43,6 +66,9 @@ public class CameraFollow : MonoBehaviour
             count++;
         }
         if (count == 0) return;
+
+        Vector3 targetPos = bounds.center + offset;
+        transform.position = Vector3.SmoothDamp(transform.position, targetPos, ref posVelocity, posSmoothTime);
 
         float aspect = cam.aspect;
         float halfHeight = bounds.size.y * 0.5f;

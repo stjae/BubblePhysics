@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 1178677249323264622}
   - component: {fileID: 7175635260571478420}
   m_Layer: 0
-  m_Name: Switch
+  m_Name: Trigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -177,3 +177,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   onColor: {r: 0.19215685, g: 1, b: 0.30560705, a: 1}
   offColor: {r: 1, g: 0.19215688, b: 0.19215688, a: 1}
+  spriteRenderer: {fileID: 0}
+  isTriggered: 0

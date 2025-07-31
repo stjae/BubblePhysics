@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class Scale : MonoBehaviour
 {
@@ -20,6 +21,8 @@ public class Scale : MonoBehaviour
     bool hitBottom;
     public bool renderProgressText;
     public bool fixAfterWhenHitBottom;
+    public bool useAsLevelClearFlag;
+    public Canvas uiCanvas;
 
     void Awake()
     {
@@ -52,17 +55,18 @@ public class Scale : MonoBehaviour
             isOnBoard = false;
         }
 
-        if (hitBottom && fixAfterWhenHitBottom) return;
+        if (hitBottom && useAsLevelClearFlag)
+        {
+            uiCanvas.gameObject.SetActive(true);
+        }
+
+        if (hitBottom && fixAfterWhenHitBottom)
+        {
+            return;
+        }
 
         float t = Mathf.Clamp01((float)sensor.enteredPointIndices.Count / goalPointCount);
         float descendHeight = Mathf.Lerp(0, totalHeight, t);
-        float heightRemain = square.position.y - scaleEndPoint.transform.position.y;
-
-        if (heightRemain < 0.1f && fixAfterWhenHitBottom)
-        {
-            platform.position = new Vector3(platform.transform.position.x, scaleEndPoint.transform.position.y, platform.transform.position.z);
-            hitBottom = true;
-        }
 
         if (isOnBoard)
         {
@@ -75,6 +79,11 @@ public class Scale : MonoBehaviour
         }
 
         t = Mathf.Clamp01((initialPos.y - platform.position.y) / totalHeight);
+        if (t > 0.999)
+        {
+            hitBottom = true;
+            t = 1;
+        }
         Color progressColor = Color.Lerp(initialColor, endColor, t);
         spriteRenderer.color = progressColor;
 

@@ -7,46 +7,49 @@ public class Gate : MonoBehaviour
     public float openHeight;
     Vector3 initialPos;
     Vector3 targetPos;
-    bool isOpening;
-    bool isOpened;
+    public bool isOpened;
     float t;
 
     void Awake()
     {
         initialPos = transform.position;
-        targetPos = new Vector3(initialPos.x, initialPos.y + openHeight, initialPos.z);
+        targetPos = initialPos + transform.up * openHeight;
     }
 
     void Update()
     {
+        if (!isOpened)
+        {
+            if (trigger1 != null && trigger2 != null)
+            {
+                isOpened = trigger1.isTriggered && trigger2.isTriggered;
+            }
+            else if (trigger1 != null && trigger2 == null)
+            {
+                isOpened = trigger1.isTriggered;
+            }
+            else
+            {
+                Debug.Log("No trigger is assigned!");
+                return;
+            }
+        }
+
         if (isOpened)
-        {
-            return;
-        }
-
-        if (trigger1 != null && trigger2 != null)
-        {
-            isOpening = trigger1.isTriggered && trigger2.isTriggered;
-        }
-        else if (trigger1 != null && trigger2 == null)
-        {
-            isOpening = trigger1.isTriggered;
-        }
-        else
-        {
-            Debug.Log("No trigger is assigned!");
-            return;
-        }
-
-        if (isOpening)
         {
             t += Time.deltaTime;
             transform.position = Vector3.Lerp(initialPos, targetPos, t);
-        }
 
-        if (t >= 1)
-        {
-            isOpened = true;
+            if (trigger1 != null)
+            {
+                trigger1.isTriggerFromOutside = true;
+                trigger1.spriteRenderer.color = trigger1.onColor;
+            }
+            if (trigger2 != null)
+            {
+                trigger2.isTriggerFromOutside = true;
+                trigger2.spriteRenderer.color = trigger2.onColor;
+            }
         }
     }
 }
