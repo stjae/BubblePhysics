@@ -8,11 +8,12 @@ public class Point : MonoBehaviour
     FluidSim fluidSim;
     public bool isOnGround;
     public Vector3 groundNormal;
-    public float collisionForce;
     public float lifeTime;
     public bool isVisible;
     float maxInterval = 1.0f;
     float minInterval = 0.5f;
+    float restitution = 0.8f;                  // 0~1 (1이면 완전 반사)
+    float friction = 0.2f;                  // 0~1 (1이면 접선 성분 소멸)
 
     void Awake()
     {
@@ -36,29 +37,63 @@ public class Point : MonoBehaviour
 
     void OnCollisionEnter2D(Collision2D collisionInfo)
     {
+        int idx = transform.GetSiblingIndex();
+        Vector2 v = fluidSim.particles[idx].velocity;
+
         foreach (ContactPoint2D contact in collisionInfo.contacts)
         {
-            fluidSim.particles[transform.GetSiblingIndex()].velocity = Vector2.Reflect(fluidSim.particles[transform.GetSiblingIndex()].velocity, contact.normal) * 0.5f;
+            Vector2 n = contact.normal.normalized;
+            float vDotN = Vector2.Dot(v, n);
+
+            if (vDotN < 0f)
+            {
+                Vector2 vPerp = n * vDotN;
+                Vector2 vTan = v - vPerp;
+
+                Vector2 newPerp = -vPerp * restitution;
+                Vector2 newTan = vTan * (1f - friction);
+
+                v = newPerp + newTan;
+            }
+
             isOnGround = true;
-            groundNormal = contact.normal;
+            groundNormal = n;
         }
+
+        fluidSim.particles[idx].velocity = v;
     }
+
     void OnCollisionExit2D(Collision2D collisionInfo)
     {
         isOnGround = false;
-        collisionForce = 0.01f;
     }
 
     void OnCollisionStay2D(Collision2D collisionInfo)
     {
-        foreach (ContactPoint2D contact in collisionInfo.contacts)
+        int idx = transform.GetSiblingIndex();
+        Vector2 v = fluidSim.particles[idx].velocity;
+
+        foreach (var contact in collisionInfo.contacts)
         {
-            collisionForce += 0.02f;
-            fluidSim.particles[transform.GetSiblingIndex()].velocity = new Vector2();
-            fluidSim.particles[transform.GetSiblingIndex()].velocity += contact.normal * collisionForce;
+            Vector2 n = contact.normal;
+            float vDotN = Vector2.Dot(v, n);
+
+            if (vDotN < 0f)
+            {
+                Vector2 vPerp = n * vDotN;
+                Vector2 vTan = v - vPerp;
+
+                Vector2 newPerp = -vPerp * restitution;
+                Vector2 newTan = vTan * (1f - friction);
+
+                v = newPerp + newTan;
+            }
+
             isOnGround = true;
             groundNormal = contact.normal;
         }
+
+        fluidSim.particles[idx].velocity = v;
     }
 
     public int GetIndex()
@@ -69,6 +104,10 @@ public class Point : MonoBehaviour
     public Particle GetParticle()
     {
         return fluidSim.particles[transform.GetSiblingIndex()];
+    }
+    public void InitParticle()
+    {
+        fluidSim.particles[transform.GetSiblingIndex()] = new Particle();
     }
 
     void UpdateLife()

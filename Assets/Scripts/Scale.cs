@@ -1,6 +1,4 @@
-using System.Net;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 
 public class Scale : MonoBehaviour
 {
@@ -21,6 +19,7 @@ public class Scale : MonoBehaviour
     float totalHeight;
     bool hitBottom;
     public bool renderProgressText;
+    public bool fixAfterWhenHitBottom;
 
     void Awake()
     {
@@ -29,6 +28,7 @@ public class Scale : MonoBehaviour
         bubble = FindFirstObjectByType<Bubble>();
         sensor = transform.GetComponentInChildren<ScaleSensor>();
         scaleEndPoint = transform.GetComponentInChildren<ScaleEndPoint>();
+        scaleEndPoint.GetComponent<SpriteRenderer>().enabled = false;
         platform = transform.Find("Platform");
         square = transform.Find("Platform").Find("Square");
         initialPos = platform.position;
@@ -52,13 +52,13 @@ public class Scale : MonoBehaviour
             isOnBoard = false;
         }
 
-        if (hitBottom) return;
+        if (hitBottom && fixAfterWhenHitBottom) return;
 
         float t = Mathf.Clamp01((float)sensor.enteredPointIndices.Count / goalPointCount);
         float descendHeight = Mathf.Lerp(0, totalHeight, t);
         float heightRemain = square.position.y - scaleEndPoint.transform.position.y;
 
-        if (heightRemain < 0.1f)
+        if (heightRemain < 0.1f && fixAfterWhenHitBottom)
         {
             platform.position = new Vector3(platform.transform.position.x, scaleEndPoint.transform.position.y, platform.transform.position.z);
             hitBottom = true;

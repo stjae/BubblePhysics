@@ -542,6 +542,7 @@ MonoBehaviour:
   endColor: {r: 0.41960788, g: 0.7843138, b: 0, a: 1}
   smoothTime: 1
   renderProgressText: 1
+  fixAfterWhenHitBottom: 1
 --- !u!1 &8905615378536701317
 GameObject:
   m_ObjectHideFlags: 0
@@ -620,7 +621,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 7482667652216324306, guid: 311925a002f4447b3a28927169b83ea6, type: 3}
-  m_Color: {r: 1, g: 0.4292453, b: 0.47562847, a: 0}
+  m_Color: {r: 1, g: 0.4292453, b: 0.47562847, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0

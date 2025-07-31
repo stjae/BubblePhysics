@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEditor.SearchService;
 using UnityEngine;
 
 public class Bubble : MonoBehaviour
@@ -39,6 +41,7 @@ public class Bubble : MonoBehaviour
     public List<int> mainCluster { get; private set; }  // A cluster controlled by the player 
                                                         // プレイヤーに制御されるクラスタ
     public Vector3 MainClusterPos { get; private set; }
+    Vector3 initialPos;
     int mainClusterIndex;
     List<bool> visited;
     [SerializeField]
@@ -61,13 +64,18 @@ public class Bubble : MonoBehaviour
     {
         fluidSim = GetComponent<FluidSim>();
         points = new Point[MaxPointCount];
+        initialPos = transform.parent.position;
         MainClusterPos = transform.parent.position;
+        PhysicsMaterial2D pointPhysicsMat = new PhysicsMaterial2D();
+        pointPhysicsMat.friction = 0;
         for (int i = 0; i < MaxPointCount; i++)
         {
             points[i] = Instantiate(point, transform, false);
             points[i].gameObject.SetActive(false);
             points[i].radius = pointRadius;
+            points[i].GetComponent<Collider2D>().sharedMaterial = pointPhysicsMat;
         }
+        isInflating = true;
         StartCoroutine(InflateInitialCoroutine());
         clusters = new List<List<int>>();
         visited = new List<bool>();
@@ -76,6 +84,8 @@ public class Bubble : MonoBehaviour
 
     void Update()
     {
+        CheckRestart();
+
         for (int i = 0; i < clusters.Count; i++)
         {
             float clusterAvgLifeTime = 0.0f;
@@ -109,6 +119,16 @@ public class Bubble : MonoBehaviour
         }
     }
 
+    void CheckRestart()
+    {
+        if (mainCluster.Count < 1 && !isInflating)
+        {
+            MainClusterPos = initialPos;
+            isInflating = true;
+            StartCoroutine(InflateInitialCoroutine());
+        }
+    }
+
     void FixedUpdate()
     {
         ActivePointCount = 0;
@@ -121,6 +141,7 @@ public class Bubble : MonoBehaviour
             else
             {
                 p.transform.position = MainClusterPos;
+                p.InitParticle();
                 p.GetParticle().isActive = false;
             }
         }
@@ -133,7 +154,7 @@ public class Bubble : MonoBehaviour
     void UpdatePosition()
     {
         MainClusterPos = GetClusterPos(mainCluster);
-        CenterPos = new Vector3();
+        Vector3 newCenterPos = new Vector3();
         foreach (List<int> cluster in clusters)
         {
             Vector2 clusterCenter = new Vector2();
@@ -142,9 +163,13 @@ public class Bubble : MonoBehaviour
                 clusterCenter += fluidSim.particles[i].position;
             }
             clusterCenter /= cluster.Count;
-            CenterPos += (Vector3)clusterCenter;
+            newCenterPos += (Vector3)clusterCenter;
         }
-        CenterPos /= clusters.Count;
+
+        if (clusters.Count > 0)
+        {
+            CenterPos = newCenterPos / clusters.Count;
+        }
     }
 
     public void Inflate() // Increase the number of points 
@@ -245,6 +270,7 @@ public class Bubble : MonoBehaviour
                 }
             }
             yield return new WaitForSeconds(inflationInterval);
+            isInflating = false;
         }
     }
 
@@ -289,6 +315,7 @@ public class Bubble : MonoBehaviour
     {
         visited.Clear();
         clusters.Clear();
+        mainCluster.Clear();
         visited.Capacity = fluidSim.particles.Length;
 
         for (int i = 0; i < fluidSim.particles.Length; i++)
@@ -321,12 +348,8 @@ public class Bubble : MonoBehaviour
             clusters.Add(cluster);
         }
 
-        if (clusters.Count < 1)
-        {
-            return;
-        }
+        if (clusters.Count < 1) return;
 
-        mainCluster.Clear();
         mainCluster = clusters[0];
         mainClusterIndex = 0;
         float shortestDist = (GetClusterPos(clusters[0]) - (Vector2)MainClusterPos).magnitude; // distance from the current bubble to the closest cluster
